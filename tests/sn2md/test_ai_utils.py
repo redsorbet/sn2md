@@ -1,8 +1,6 @@
 import base64
 from unittest.mock import mock_open, patch, Mock
 
-import pytest
-
 from sn2md.ai_utils import encode_image, image_to_markdown
 
 

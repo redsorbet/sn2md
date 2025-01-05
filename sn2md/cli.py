@@ -6,8 +6,12 @@ import tomllib
 import click
 from platformdirs import user_config_dir
 
-from .importer import (DEFAULT_MD_TEMPLATE, import_supernote_directory_core,
-                       import_supernote_file_core, logger as importer_logger)
+from .importer import (
+    DEFAULT_MD_TEMPLATE,
+    import_supernote_directory_core,
+    import_supernote_file_core,
+    logger as importer_logger,
+)
 from .ai_utils import TO_MARKDOWN_TEMPLATE, TO_TEXT_TEMPLATE
 from .types import Config
 
@@ -27,14 +31,10 @@ def get_config(config_file: str) -> Config:
         "title_prompt": TO_TEXT_TEMPLATE,
         "template": DEFAULT_MD_TEMPLATE,
         "model": "gpt-4o-mini",
-        "openai_api_key": os.environ.get("OPENAI_API_KEY"),
     }
     try:
         with open(config_file, "rb") as f:
-            return {
-                **defaults,
-                **tomllib.load(f)
-            }
+            return {**defaults, **tomllib.load(f)}
     except FileNotFoundError:
         print(f"No config file found at {config_file}, using defaults", file=sys.stderr)
 

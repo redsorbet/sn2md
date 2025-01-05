@@ -1,14 +1,17 @@
 # Supernote to Markdown converter (sn2md)
 
-**sn2md** is a command-line tool to convert Supernote `.note` files into markdown. It leverages OpenAI GPT-4o to convert images and text from Supernote files into a structured markdown document.
-
 ![Supernote to Markdown](docs/supernote-to-markdown.png)
 
-Sample output: [20240712_151149.md](docs/20240712_151149/20240712_151149.md)
+Sample output: [20240712_151149.md](.docs/20240712_151149/20240712_151149.md)
 
 ## Features
 
 - Converts Supernote `.note` files to markdown.
+- Converts Supernote `.note` files to markdown.
+- Supports conversion of images to markdown using the Mermaid diagramming tool.
+- Automatically handles math equations using `$` and `$$` style math blocks.
+- Generates a markdown file and embedded images (custom output supported).
+
 - Supports conversion of images to markdown using the Mermaid diagramming tool.
 - Automatically handles math equations using `$` and `$$` style math blocks.
 - Generates a markdown file and embedded images (custom output supported).
@@ -49,7 +52,7 @@ Values that you can override:
   to help the AI understand the context of the previous page.
 - `title_prompt`: The prompt sent to the OpenAI API to decode any titles (H1-H4 highlights).
 - `model`: The OpenAI model to use (default: `gpt-4o-mini`).
-- `openai_api_key`: Your OpenAI API key (defaults to your `$OPENAI_API_KEY` environmental variable setting).
+- `api_key`: Your Service provider's API key (defaults to the environmental variable required by the model you've provided. For instance, for GPT models `$OPENAI_API_KEY`).
 
 Example instructing the AI to convert text to pirate speak:
 
@@ -140,8 +143,8 @@ Variables supplied to the template:
 - `titles`: an array of titles with the following properties:
   - `page_number`: The page number the title is on.
   - `level`: The level of the title (1-4).
-  - `content`: The content of the title. If the area of the title appears to be text, the text, otherwise a description of it.
-
+  - `content`: The content of the title. If the area of the title appears to be text,
+    the text, otherwise a description of it.
 
 ## Contributing
 
@@ -150,11 +153,14 @@ Contributions are welcome. Please open an issue or submit a pull request.
 ### Development
 
 ```sh
+```sh
 git clone https://github.com/yourusername/supernote-importer.git
 cd supernote-importer
 poetry install
-```
 
+pytest
+
+```
 
 ## License
 

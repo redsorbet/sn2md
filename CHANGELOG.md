@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.0
+
+### Added
+
+- Adds `pages` variable to output templates
+- Support for [any plugin supported by the llm](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis)  library (gemini, ollama, etc)
+
+### Changed
+
+-- TODO dunno how to translate this.
+- The `openai_api_key` configuration option has been changed to `api_key`.
+
 ## v1.0.1
 
 ### Changed
