@@ -29,20 +29,26 @@ tags: supernote
 - ![{{ image.name }}]({{image.name}})
 {%- endfor %}
 
+{% if keywords %}
 # Keywords
 {% for keyword in keywords %}
 - Page {{ keyword.page_number }}: {{ keyword.content }}
 {%- endfor %}
+{%- endif %}
 
+{% if links %}
 # Links
 {% for link in links %}
-- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} {{ link.name }}
+- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} [[{{ link.name | replace('.note', '')}}]]
 {%- endfor %}
+{%- endif %}
 
+{% if titles %}
 # Titles
 {% for title in titles %}
 - Page {{ title.page_number }}: Level {{ title.level }} "{{ title.content }}"
 {%- endfor %}
+{%- endif %}
 """
 
 
@@ -68,7 +74,7 @@ def compute_and_check_notebook_hash(notebook_path: str, output_path: str) -> Non
 
 
 def import_supernote_file_core(
-    filename: str, output: str, config: Config, force: bool = False
+    filename: str, output: str, config: Config, force: bool = False, model: str | None = None
 ) -> None:
     global DEFAULT_MD_TEMPLATE
     template = DEFAULT_MD_TEMPLATE
@@ -110,7 +116,7 @@ def import_supernote_file_core(
                 page,
                 context,
                 config.get("api_key", config.get("openai_api_key", None)),
-                config["model"],
+                model if model else config.get("model", "gpt-4o-mini"),
                 config["prompt"],
             )
         )
@@ -192,14 +198,14 @@ def import_supernote_file_core(
 
 
 def import_supernote_directory_core(
-    directory: str, output: str, config: Config, force: bool = False
+    directory: str, output: str, config: Config, force: bool = False, model: str | None = None
 ) -> None:
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith(".note"):
                 filename = os.path.join(root, file)
                 try:
-                    import_supernote_file_core(filename, output, config, force)
+                    import_supernote_file_core(filename, output, config, force, model)
                 except ValueError as e:
                     logger.debug(f"Skipping {filename}: {e}")
     for root, _, files in os.walk(directory):
@@ -207,6 +213,6 @@ def import_supernote_directory_core(
             if file.endswith(".note"):
                 filename = os.path.join(root, file)
                 try:
-                    import_supernote_file_core(filename, output, config, force)
+                    import_supernote_file_core(filename, output, config, force, model)
                 except ValueError as e:
                     logger.debug(f"Skipping {filename}: {e}")

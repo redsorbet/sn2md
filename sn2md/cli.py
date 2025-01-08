@@ -1,4 +1,3 @@
-import os
 import logging
 import sys
 import tomllib
@@ -54,7 +53,7 @@ def get_config(config_file: str) -> Config:
     "-o",
     type=click.Path(writable=True),
     default="supernote",
-    help="Output directory for images and files.",
+    help="Output directory for images and files (default: supernote)",
 )
 @click.option(
     "--force",
@@ -68,13 +67,20 @@ def get_config(config_file: str) -> Config:
     default="WARNING",
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
+@click.option(
+    "--model",
+    "-m",
+    default=None,
+    help="Set the LLM model (default: gpt-4o-mini)",
+)
 @click.pass_context
-def cli(ctx, config, output, force, level):
+def cli(ctx, config, output, force, level, model):
     ctx.obj = {}
     ctx.obj["config"] = get_config(config)
     ctx.obj["output"] = output
     ctx.obj["force"] = force
     ctx.obj["level"] = level
+    ctx.obj["model"] = model
     setup_logging(level)
 
 
@@ -85,8 +91,9 @@ def import_supernote_file(ctx, filename: str) -> None:
     config = ctx.obj["config"]
     output = ctx.obj["output"]
     force = ctx.obj["force"]
+    model = ctx.obj["model"]
     try:
-        import_supernote_file_core(filename, output, config, force)
+        import_supernote_file_core(filename, output, config, force, model)
     except ValueError:
         print("Notebook already processed")
         sys.exit(1)
@@ -99,7 +106,8 @@ def import_supernote_directory(ctx, directory: str) -> None:
     config = ctx.obj["config"]
     output = ctx.obj["output"]
     force = ctx.obj["force"]
-    import_supernote_directory_core(directory, output, config, force)
+    model = ctx.obj["model"]
+    import_supernote_directory_core(directory, output, config, force, model)
 
 
 if __name__ == "__main__":

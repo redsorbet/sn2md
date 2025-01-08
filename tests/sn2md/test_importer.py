@@ -98,4 +98,4 @@ def test_import_supernote_directory_core(temp_dir):
     with patch("sn2md.importer.import_supernote_file_core") as mock_import_file:
         import_supernote_directory_core(directory, output, template_path, force=True)
         assert mock_import_file.call_count == 2
-        mock_import_file.assert_any_call(note_file, output, template_path, True)
+        mock_import_file.assert_any_call(note_file, output, template_path, True, None)

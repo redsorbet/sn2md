@@ -1,7 +1,3 @@
-import base64
-import io
-
-from openai import OpenAI
 from PIL.Image import Image
 
 import llm
@@ -22,11 +18,6 @@ TO_TEXT_TEMPLATE = """
 Convert the following image to text.
 - If the image does not appear to be text, output a brief description (no more than 4 words), prepended with "Image: "
 """
-
-
-def encode_image(image_path: str) -> str:
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def convert_image(
