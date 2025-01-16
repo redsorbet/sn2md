@@ -4,7 +4,7 @@ reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownParameterType = false
 reportUnknownMemberType = false
-reportMissingParameterType = false
+areportMissingParameterType = false
 
 [tool.poetry]
 name = "sn2md"
@@ -21,7 +21,7 @@ issues = "https://github.com/dsummersl/sn2md/issues"
 python = "^3.11"
 openai = "^1.39.0"
 click = "^8.1.7"
-supernotelib = { git = "https://github.com/jya-dev/supernote-tool", rev = "581c6288df12a7e1bd98e8295d93e9d3ddd2d51a" }
+supernotelib = "^0.6.2"
 pyyaml = "^6.0.1"
 platformdirs = "^4.2.2"
 
