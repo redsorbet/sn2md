@@ -4,7 +4,7 @@ reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownParameterType = false
 reportUnknownMemberType = false
-areportMissingParameterType = false
+reportMissingParameterType = false
 
 [tool.poetry]
 name = "sn2md"
