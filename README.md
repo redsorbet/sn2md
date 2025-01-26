@@ -203,6 +203,7 @@ Context (the last few lines of markdown from the previous page):
 ###
 You are an OCR program. Extract text from the image and format as paragraphs of plain markdown text.
 """
+```
 
 Please let me know if you find better prompts!
 
