@@ -30,10 +30,14 @@ def get_config(config_file: str) -> Config:
         "title_prompt": TO_TEXT_TEMPLATE,
         "template": DEFAULT_MD_TEMPLATE,
         "model": "gpt-4o-mini",
+        "api_key": None,
     }
     try:
         with open(config_file, "rb") as f:
-            return {**defaults, **tomllib.load(f)}
+            file_config = {**defaults, **tomllib.load(f)}
+            if "openai_api_key" in file_config:
+                file_config["api_key"] = file_config.pop("openai_api_key")
+            return file_config
     except FileNotFoundError:
         print(f"No config file found at {config_file}, using defaults", file=sys.stderr)
 

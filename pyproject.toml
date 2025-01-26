@@ -23,14 +23,14 @@ click = "^8.1.7"
 supernotelib = "^0.6.2"
 pyyaml = "^6.0.1"
 platformdirs = "^4.2.2"
-
-
 jinja2 = "^3.1.4"
 llm = "^0.19.1"
+
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 isort = "^5.13.2"
 pytest = "^8.2.0"
+pytest-cov = "^4.1.0"
 autoimport = "^1.5.0"
 
 [build-system]
@@ -44,6 +44,7 @@ testpaths = [
 python_files = [
     "sn2md/*.py"
 ]
+addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=75"
 
 [tool.poetry.scripts]
 sn2md = "sn2md.cli:cli"

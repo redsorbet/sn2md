@@ -74,7 +74,7 @@ def test_import_supernote_file_core(temp_dir):
             "title_prompt": "TO_TEXT_TEMPLATE",
             "template": "DEFAULT_MD_TEMPLATE",
             "model": "mock-model",
-            "openai_api_key": "mock-key",
+            "api_key": "mock-key",
         }
         import_supernote_file_core(filename, output, config, force=True)
 

@@ -46,10 +46,12 @@ def convert_binary_to_image(notebook, title):
 
     image_converter = sn.converter.ImageConverter(notebook)
     decoder = image_converter.find_decoder(page)
+    titlerect = title.metadata["TITLERECT"].split(",")
     # TODO ideally decoder would support decoding these titles directly - make a PR on supernotelib!
-    with patch('supernotelib.decoder.fileformat') as ff_mock:
-        titlerect = title.metadata['TITLERECT'].split(',')
-        ff_mock.PAGE_WIDTH = int(titlerect[2])
-        ff_mock.PAGE_HEIGHT = int(titlerect[3])
+    with (
+        patch.object(notebook, "get_width") as width_mock,
+        patch.object(notebook, "get_height") as height_mock,
+    ):
+        width_mock.return_value = int(titlerect[2])
+        height_mock.return_value = int(titlerect[3])
         return image_converter._create_image_from_decoder(decoder, binary)
-

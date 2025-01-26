@@ -74,7 +74,11 @@ def compute_and_check_notebook_hash(notebook_path: str, output_path: str) -> Non
 
 
 def import_supernote_file_core(
-    filename: str, output: str, config: Config, force: bool = False, model: str | None = None
+    filename: str,
+    output: str,
+    config: Config,
+    force: bool = False,
+    model: str | None = None,
 ) -> None:
     global DEFAULT_MD_TEMPLATE
     template = DEFAULT_MD_TEMPLATE
@@ -115,7 +119,7 @@ def import_supernote_file_core(
             + image_to_markdown(
                 page,
                 context,
-                config.get("api_key", config.get("openai_api_key", None)),
+                config.get("api_key", None),
                 model if model else config.get("model", "gpt-4o-mini"),
                 config["prompt"],
             )
@@ -182,8 +186,9 @@ def import_supernote_file_core(
                 "page_number": title.get_page_number(),
                 "content": image_to_text(
                     convert_binary_to_image(notebook, title),
-                    config["openai_api_key"],
+                    config["api_key"],
                     config["model"],
+                    config["title_prompt"],
                 ),
                 "level": title.metadata["TITLELEVEL"],
             }
@@ -198,7 +203,11 @@ def import_supernote_file_core(
 
 
 def import_supernote_directory_core(
-    directory: str, output: str, config: Config, force: bool = False, model: str | None = None
+    directory: str,
+    output: str,
+    config: Config,
+    force: bool = False,
+    model: str | None = None,
 ) -> None:
     for root, _, files in os.walk(directory):
         for file in files:
