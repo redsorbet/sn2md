@@ -231,3 +231,4 @@ This project is licensed under the AGPL License. See the [LICENSE](LICENSE) file
 
 - [Supernote](https://www.supernote.com/) for their amazing note-taking devices.
 - [supernote-tool library](https://github.com/jya-dev/supernote-tool) for .note file parsing.
+- [llm](https://llm.datasette.io/) for LLM access.
