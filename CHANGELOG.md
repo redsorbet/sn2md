@@ -4,7 +4,6 @@
 
 ### Added
 
-- Adds `pages` variable to output templates
 - Support for [any plugin supported by the llm](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis)  library (gemini, ollama, etc)
 - Adds `--model` option to set a specific model
 - Adds `api_key` configuration option (replaces `openai_api_key`).
