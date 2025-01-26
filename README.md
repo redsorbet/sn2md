@@ -47,9 +47,9 @@ Values that you can configure:
 - `template`: The output template to generate markdown.
 - `prompt`: The prompt sent to the LLM. Requires a `{context}` placeholder
   to help the AI understand the context of the previous page.
-- `title_prompt`: The prompt sent to the OpenAI API to decode any titles (H1-H4 highlights).
-- `model`: The model to use (default: `gpt-4o-mini`). The [LLM library](https://llm.datasette.io/en/stable/plugins/directory.html) supports openai out of the box, but many additional providers can be configured (see below).
-- `api_key`: Your Service provider's API key (defaults to the environmental variable required by the model you've provided. For instance, for GPT models `$OPENAI_API_KEY`).
+- `title_prompt`: The prompt sent to the OpenAI API to decode any titles (H1-H4 supernote highlights).
+- `model`: The model to use (default: `gpt-4o-mini`). Supports OpenAI out of the box, but additional providers can be configured (see below).
+- `api_key`: Your Service provider's API key (defaults to the environmental variable required by the model you've provided. For instance, for OpenAI models `$OPENAI_API_KEY`).
 
 Example instructing the AI to convert text to pirate speak:
 
@@ -61,6 +61,7 @@ Context (what the last couple lines of the previous page were converted to markd
 ###
 Convert the following image to markdown:
 - Don't convert diagrams or images. Just output "<IMAGE>" on a newline.
+- Paraphrase all the text in pirate speak.
 """
 
 template = """
@@ -75,17 +76,18 @@ The default prompt sent to the LLM is:
 
 ```markdown
 ###
-Context (what the last couple lines of the previous page were converted to markdown):
+Context (the last few lines of markdown from the previous page):
 {context}
 ###
-Convert the following image to markdown:
-- If a diagram or image appears on the page, and is a simple diagram that the mermaid diagramming tool can achieve, create a mermaid codeblock of it.
+Convert the image to markdown:
+- If there is a simple diagram that the mermaid syntax can achieve, create a mermaid codeblock of it.
 - When it is unclear what an image is, don't output anything for it.
-- Assume text is not in a codeblock. Do not wrap any text in codeblocks.
-- Use $$, $ style math blocks for math equations.
+- Use $$, $ latex math blocks for math equations.
+- Support Obsidian syntaxes and dataview "field:: value" syntax.
+- Do not wrap text in codeblocks.
 ```
 
-This can be overridden in the configuration file.
+This can be overridden in the configuration file. For example, to have underlined text converted to an Obsidian internal link you could append `- Convert any underlined words to internal wiki links (double brackets).`.
 
 ### Output Template
 
@@ -104,18 +106,21 @@ tags: supernote
 {% for image in images %}
 - ![{{ image.name }}]({{image.name}})
 {%- endfor %}
+
 {% if keywords %}
 # Keywords
 {% for keyword in keywords %}
 - Page {{ keyword.page_number }}: {{ keyword.content }}
 {%- endfor %}
 {%- endif %}
+
 {% if links %}
 # Links
 {% for link in links %}
 - Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} [[{{ link.name | replace('.note', '')}}]]
 {%- endfor %}
 {%- endif %}
+
 {% if titles %}
 # Titles
 {% for title in titles %}
@@ -149,7 +154,7 @@ Variables supplied to the template:
 
 ### Other LLM Models
 
-[LLM supports many models](https://llm.datasette.io/en/stable/other-models.html). You can use any of these models by specifying the model, as long is it a multi-modal model that supports visual inputs (such as gpt-4o-mini, llama3.2-vision, etc).
+This tool uses [llm](https://llm.datasette.io/), which [supports many services](https://llm.datasette.io/en/stable/other-models.html). You can use any of these models by specifying the model, as long is it a multi-modal model that supports visual inputs (such as gpt-4o-mini, llama3.2-vision, etc).
 
 Here are a couple examples of using this tool with other models.
 
@@ -191,7 +196,6 @@ sn2md -m llama3.2-vision:11b file <path_to_note_file>
 Notes: The default prompt does NOT work well with `llama3.2-vision:11b`. You will need to provide a custom prompt in the configuration file. Basic testing showed this configuration provided basic OCR capabilities (probably not mermaid, ore other markdown features!):
 
 ```toml
-```
 model = "llama3.2-vision:11b"
 prompt = """###
 Context (the last few lines of markdown from the previous page):
@@ -199,6 +203,8 @@ Context (the last few lines of markdown from the previous page):
 ###
 You are an OCR program. Extract text from the image and format as paragraphs of plain markdown text.
 """
+
+Please let me know if you find better prompts!
 
 ## Contributing
 
