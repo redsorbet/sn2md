@@ -8,3 +8,4 @@ transcripts
 .aider*
 __pycache__
 dist/
+.coverage

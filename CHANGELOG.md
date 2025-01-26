@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.0
+
+### Added
+
+- Support for [any plugin supported by the llm](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis)  library (gemini, ollama, etc)
+- Adds `--model` option to set a specific model
+- Adds `api_key` configuration option (replaces `openai_api_key`).
+
+### Changed
+
+- The `openai_api_key` configuration has been deprecated in favor of `api_key`
+
 ## v1.0.1
 
 ### Changed

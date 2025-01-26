@@ -8,7 +8,11 @@ from jinja2 import Template
 
 from .types import Config
 from .ai_utils import image_to_markdown, image_to_text
-from .supernote_utils import convert_notebook_to_pngs, convert_binary_to_image, load_notebook
+from .supernote_utils import (
+    convert_notebook_to_pngs,
+    convert_binary_to_image,
+    load_notebook,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +29,26 @@ tags: supernote
 - ![{{ image.name }}]({{image.name}})
 {%- endfor %}
 
+{% if keywords %}
 # Keywords
 {% for keyword in keywords %}
 - Page {{ keyword.page_number }}: {{ keyword.content }}
 {%- endfor %}
+{%- endif %}
 
+{% if links %}
 # Links
 {% for link in links %}
-- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} {{ link.name }}
+- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} [[{{ link.name | replace('.note', '')}}]]
 {%- endfor %}
+{%- endif %}
 
+{% if titles %}
 # Titles
 {% for title in titles %}
 - Page {{ title.page_number }}: Level {{ title.level }} "{{ title.content }}"
 {%- endfor %}
+{%- endif %}
 """
 
 
@@ -64,13 +74,17 @@ def compute_and_check_notebook_hash(notebook_path: str, output_path: str) -> Non
 
 
 def import_supernote_file_core(
-    filename: str, output: str, config: Config, force: bool = False
+    filename: str,
+    output: str,
+    config: Config,
+    force: bool = False,
+    model: str | None = None,
 ) -> None:
     global DEFAULT_MD_TEMPLATE
     template = DEFAULT_MD_TEMPLATE
 
-    if config['template']:
-        template = config['template']
+    if config["template"]:
+        template = config["template"]
 
     jinja_template = Template(template)
 
@@ -97,14 +111,18 @@ def import_supernote_file_core(
     for i, page in enumerate(pngs):
         context = ""
         if i > 0 and len(markdown) > 0:
-            # include the last 50 characters...
+            # include the last 50 characters...for continuity of the transcription:
             context = markdown[-50:]
-        markdown = markdown + "\n" + image_to_markdown(
-            page,
-            context,
-            config['openai_api_key'],
-            config['model'],
-            config['prompt'],
+        markdown = (
+            markdown
+            + "\n"
+            + image_to_markdown(
+                page,
+                context,
+                config.get("api_key", None),
+                model if model else config.get("model", "gpt-4o-mini"),
+                config["prompt"],
+            )
         )
 
     images = [
@@ -119,6 +137,7 @@ def import_supernote_file_core(
     ]
 
     # Codes:
+    # TODO add a pull request for this feature:
     # https://github.com/jya-dev/supernote-tool/blob/807d5fa4bf524fdb1f9c7f1c67ed66ea96a49db5/supernotelib/fileformat.py#L236
     def get_link_str(type_code: int) -> str:
         if type_code == 0:
@@ -138,28 +157,43 @@ def import_supernote_file_core(
 
         return "unknown"
 
+    # TODO add pages - for each page include keywords and titles
     jinja_markdown = jinja_template.render(
-        year_month_day=year_month_day, markdown=markdown, images=images,
-        links=[{
-            'page_number': link.get_page_number(),
-            'type': get_link_str(link.get_type()),
-            'name': os.path.basename(base64.standard_b64decode(link.get_filepath())).decode('utf-8'),
-            'device_path': base64.standard_b64decode(link.get_filepath()),
-            'inout': get_inout_str(link.get_inout())
-        } for link in notebook.links],
-        keywords=[{
-            'page_number': keyword.get_page_number(),
-            'content': keyword.get_content().decode('utf-8')
-        } for keyword in notebook.keywords],
-        titles=[{
-            'page_number': title.get_page_number(),
-            'content': image_to_text(
-                convert_binary_to_image(notebook, title),
-                config['openai_api_key'],
-                config['model']
-            ),
-            'level': title.metadata['TITLELEVEL']
-        } for title in notebook.titles]
+        year_month_day=year_month_day,
+        markdown=markdown,
+        images=images,
+        links=[
+            {
+                "page_number": link.get_page_number(),
+                "type": get_link_str(link.get_type()),
+                "name": os.path.basename(
+                    base64.standard_b64decode(link.get_filepath())
+                ).decode("utf-8"),
+                "device_path": base64.standard_b64decode(link.get_filepath()),
+                "inout": get_inout_str(link.get_inout()),
+            }
+            for link in notebook.links
+        ],
+        keywords=[
+            {
+                "page_number": keyword.get_page_number(),
+                "content": keyword.get_content().decode("utf-8"),
+            }
+            for keyword in notebook.keywords
+        ],
+        titles=[
+            {
+                "page_number": title.get_page_number(),
+                "content": image_to_text(
+                    convert_binary_to_image(notebook, title),
+                    config["api_key"],
+                    config["model"],
+                    config["title_prompt"],
+                ),
+                "level": title.metadata["TITLELEVEL"],
+            }
+            for title in notebook.titles
+        ],
     )
 
     with open(os.path.join(image_output_path, f"{notebook_name}.md"), "w") as f:
@@ -169,14 +203,18 @@ def import_supernote_file_core(
 
 
 def import_supernote_directory_core(
-    directory: str, output: str, config: Config, force: bool = False
+    directory: str,
+    output: str,
+    config: Config,
+    force: bool = False,
+    model: str | None = None,
 ) -> None:
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith(".note"):
                 filename = os.path.join(root, file)
                 try:
-                    import_supernote_file_core(filename, output, config, force)
+                    import_supernote_file_core(filename, output, config, force, model)
                 except ValueError as e:
                     logger.debug(f"Skipping {filename}: {e}")
     for root, _, files in os.walk(directory):
@@ -184,6 +222,6 @@ def import_supernote_directory_core(
             if file.endswith(".note"):
                 filename = os.path.join(root, file)
                 try:
-                    import_supernote_file_core(filename, output, config, force)
+                    import_supernote_file_core(filename, output, config, force, model)
                 except ValueError as e:
                     logger.debug(f"Skipping {filename}: {e}")

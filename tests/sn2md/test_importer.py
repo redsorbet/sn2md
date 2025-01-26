@@ -74,7 +74,7 @@ def test_import_supernote_file_core(temp_dir):
             "title_prompt": "TO_TEXT_TEMPLATE",
             "template": "DEFAULT_MD_TEMPLATE",
             "model": "mock-model",
-            "openai_api_key": "mock-key",
+            "api_key": "mock-key",
         }
         import_supernote_file_core(filename, output, config, force=True)
 
@@ -98,4 +98,4 @@ def test_import_supernote_directory_core(temp_dir):
     with patch("sn2md.importer.import_supernote_file_core") as mock_import_file:
         import_supernote_directory_core(directory, output, template_path, force=True)
         assert mock_import_file.call_count == 2
-        mock_import_file.assert_any_call(note_file, output, template_path, True)
+        mock_import_file.assert_any_call(note_file, output, template_path, True, None)

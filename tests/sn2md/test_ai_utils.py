@@ -1,27 +1,40 @@
-import base64
-from unittest.mock import mock_open, patch, Mock
+from pathlib import Path
+from unittest.mock import patch
 
-import pytest
+from PIL import Image
 
-from sn2md.ai_utils import encode_image, image_to_markdown
-
-
-@patch("builtins.open", new_callable=mock_open, read_data=b"test_image_data")
-def test_encode_image(mock_file):
-    expected_result = base64.b64encode(b"test_image_data").decode("utf-8")
-    result = encode_image("dummy_path")
-    assert result == expected_result
+from sn2md.ai_utils import image_to_markdown, image_to_text, _image_to_bytes, convert_image
+from llm import Attachment
 
 
-@patch("sn2md.ai_utils.encode_image", return_value="encoded_image_data")
-@patch("sn2md.ai_utils.OpenAI")
-def test_image_to_markdown(openai_mock, mock_encode_image):
-    mock_result = Mock()
-    mock_choice = Mock()
-    mock_choice.message.content = "mocked_markdown"
-    mock_result.choices = [mock_choice]
-    openai_mock.return_value.chat.completions.create.return_value = mock_result
+@patch("sn2md.ai_utils.llm.get_model")
+def test_convert_image(get_model_mock):
+    get_model_mock("dummy_model").prompt(
+        "text",
+        attachments=["dummy_attachment"]
+    ).text.return_value = "dummy_result"
+
+    assert convert_image("text", "dummy_attachment", "dummy_key", "dummy_model") == "dummy_result"
+
+
+@patch("sn2md.ai_utils.convert_image")
+def test_image_to_markdown(convert_mock):
+    convert_mock.return_value = "dummy_result"
     result = image_to_markdown("dummy_path", "dummy_context", "dummy_key", "dummy_model", "some prompt: {context}")
-    assert result == "mocked_markdown"
-    mock_encode_image.assert_called_once_with("dummy_path")
-    openai_mock.assert_called_once()
+    image = Attachment(path="dummy_path")
+    convert_mock.assert_called_once_with("some prompt: dummy_context", image, "dummy_key", "dummy_model")
+    assert result == "dummy_result"
+
+
+@patch("sn2md.ai_utils.convert_image")
+def test_image_to_text(convert_mock):
+    image_path = Path(__file__).parent / "fixtures/ponder.png"
+    image = Image.open(image_path)
+    result = image_to_text(image, "dummy_key", "dummy_model", "dummy_prompt")
+    convert_mock.assert_called_once_with(
+        "dummy_prompt",
+        Attachment(content=_image_to_bytes(image)),
+        "dummy_key",
+        "dummy_model"
+    )
+    assert result == convert_mock.return_value
