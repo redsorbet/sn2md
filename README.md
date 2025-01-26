@@ -216,6 +216,7 @@ Contributions are welcome. Please open an issue or submit a pull request.
 ```sh
 ```sh
 git clone https://github.com/yourusername/supernote-importer.git
+- [supernote-tool library](https://github.com/jya-dev/supernote-tool) for .note file parsing.
 cd supernote-importer
 poetry install
 
