@@ -6,9 +6,9 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 import yaml
 
-from sn2md.importer import (compute_and_check_notebook_hash,
-                            import_supernote_directory_core,
-                            import_supernote_file_core)
+from sn2md.importer import compute_and_check_notebook_hash
+from sn2md.importers.note import (import_supernote_directory_core,
+                                  import_supernote_file_core)
 from sn2md.types import Config
 
 # Mock functions from other modules
@@ -41,17 +41,16 @@ def test_compute_and_check_notebook_hash(temp_dir):
 def test_import_supernote_file_core(temp_dir):
     filename = os.path.join(temp_dir, "test.note")
     output = temp_dir
-    template_path = None
 
     with open(filename, "w") as f:
         _ = f.write("test content")
 
-    with patch("sn2md.importer.compute_and_check_notebook_hash") as mock_hash, patch(
-        "sn2md.importer.load_notebook"
+    with patch("sn2md.importers.note.compute_and_check_notebook_hash") as mock_hash, patch(
+        "sn2md.importers.note.load_notebook"
     ) as mock_notebook, patch(
-        "sn2md.importer.convert_notebook_to_pngs"
+        "sn2md.importers.note.convert_notebook_to_pngs"
     ) as mock_convert, patch(
-        "sn2md.importer.image_to_markdown"
+        "sn2md.importers.note.image_to_markdown"
     ) as mock_image_to_md, patch("builtins.open", mock_open()) as mock_file:
         mock_link = Mock()
         mock_link.get_page_number.return_value = 0
@@ -95,7 +94,7 @@ def test_import_supernote_directory_core(temp_dir):
     with open(note_file, "w") as f:
         f.write("test content")
 
-    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file:
+    with patch("sn2md.importers.note.import_supernote_file_core") as mock_import_file:
         import_supernote_directory_core(directory, output, template_path, force=True)
         assert mock_import_file.call_count == 2
         mock_import_file.assert_any_call(note_file, output, template_path, True, None)

@@ -33,7 +33,7 @@ def convert_image(
 
 
 def image_to_markdown(
-    path: str, context: str, api_key: str, model: str, prompt: str
+    path: str, context: str, api_key: str | None, model: str, prompt: str
 ) -> str:
     return convert_image(
         prompt.format(context=context), llm.Attachment(path=path), api_key, model
