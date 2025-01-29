@@ -8,8 +8,12 @@ import yaml
 from jinja2 import Template
 
 from sn2md.ai_utils import image_to_markdown, image_to_text
+from sn2md.importers.pdf import PDFExtractor
+from sn2md.importers.png import PNGExtractor
 from sn2md.types import Config, ImageExtractor
-from sn2md.importers.note import convert_binary_to_image
+from sn2md.importers.note import NotebookExtractor, convert_binary_to_image
+
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +85,7 @@ def import_supernote_file_core(
     output: str,
     config: Config,
     force: bool = False,
+    progress: bool = False,
     model: str | None = None,
 ) -> None:
     global DEFAULT_MD_TEMPLATE
@@ -110,7 +115,7 @@ def import_supernote_file_core(
     notebook = image_extractor.get_notebook(filename)
     pngs = image_extractor.extract_images(filename, image_output_path)
     markdown = ""
-    for i, page in enumerate(pngs):
+    for i, page in enumerate(tqdm(pngs, desc="Processing pages", unit="page")):
         context = ""
         if i > 0 and len(markdown) > 0:
             # include the last 50 characters...for continuity of the transcription:
@@ -129,13 +134,11 @@ def import_supernote_file_core(
 
     images = [
         {
-            "name": f"{notebook_name}_{i}.png",
-            "rel_path": os.path.join(image_output_path, f"{notebook_name}_{i}.png"),
-            "abs_path": os.path.abspath(
-                os.path.join(image_output_path, f"{notebook_name}_{i}.png")
-            ),
+            "name": os.path.basename(png_path),
+            "rel_path": png_path,
+            "abs_path": os.path.abspath(png_path),
         }
-        for i in range(len(pngs))
+        for png_path in pngs
     ]
 
     # Codes:
@@ -205,26 +208,22 @@ def import_supernote_file_core(
 
 
 def import_supernote_directory_core(
-    image_extractor: ImageExtractor,
     directory: str,
     output: str,
     config: Config,
     force: bool = False,
+    progress: bool = False,
     model: str | None = None,
 ) -> None:
     for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".note"):
-                filename = os.path.join(root, file)
-                try:
-                    import_supernote_file_core(image_extractor, filename, output, config, force, model)
-                except ValueError as e:
-                    logger.debug(f"Skipping {filename}: {e}")
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".note"):
-                filename = os.path.join(root, file)
-                try:
-                    import_supernote_file_core(image_extractor, filename, output, config, force, model)
-                except ValueError as e:
-                    logger.debug(f"Skipping {filename}: {e}")
+        for file in tqdm(files, desc="Processing files", unit="file"):
+            filename = os.path.join(root, file)
+            try:
+                if file.lower().endswith(".note"):
+                    import_supernote_file_core(NotebookExtractor(), filename, output, config, force, progress, model)
+                if file.lower().endswith(".pdf"):
+                    import_supernote_file_core(PDFExtractor(), filename, output, config, force, progress, model)
+                if file.lower().endswith(".png"):
+                    import_supernote_file_core(PNGExtractor(), filename, output, config, force, progress, model)
+            except ValueError as e:
+                logger.debug(f"Skipping {filename}: {e}")

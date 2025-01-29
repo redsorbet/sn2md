@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.0
+
+### Added
+
+- Adds support for PDF and PNG files.
+- Adds --progress option to show progress bar.
+
 ## v2.0.0
 
 ### Added

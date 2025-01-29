@@ -1,6 +1,6 @@
 # Supernote to Markdown converter (sn2md)
 
-A CLI tool to convert Supernote `.note` files to markdown using any LLM supported by the [LLM library](https://llm.datasette.io/en/stable/plugins/directory.html).
+A CLI tool to convert Supernote `.note`, PDFs, and images  to markdown using any LLM supported by the [LLM library](https://llm.datasette.io/en/stable/plugins/directory.html).
 
 ![Supernote to Markdown](docs/supernote-to-markdown.png)
 
@@ -26,10 +26,10 @@ Setup your **OPENAI_API_KEY** environment variable.
 To import a single Supernote `.note` file, use the `file` command:
 
 ```sh
-# import one .note file:
+# import one .note file (or PDF, image):
 sn2md file <path_to_note_file>
 
-# import a directory of .note files:
+# import a directory of .note files (or PDFs, images):
 sn2md directory <path_to_directory>
 ```
 
@@ -137,20 +137,22 @@ Variables supplied to the template:
   - `rel_path`: The relative path to the image file to where the file was run
     from.
   - `abs_path`: The absolute path to the image file.
-- `links`: an array of links in or out of the note with the following properties:
+- `links`: an array of links in or out of a .note file with the following properties:
   - `page_number`: The page number the link is on.
   - `type`: The link type (page, file, web)
   - `name`: The basename of the link (url, page, web)
   - `device_path`: The full path of the link
   - `inout`: The direction of the link (in, out)
-- `keywords`: an array of keywords with the following properties:
+- `keywords`: an array of keywords in a .note file with the following properties:
   - `page_number`: The page number the keyword is on.
   - `content`: The content of the keyword.
-- `titles`: an array of titles with the following properties:
+- `titles`: an array of titles in a .note file with the following properties:
   - `page_number`: The page number the title is on.
   - `level`: The level of the title (1-4).
   - `content`: The content of the title. If the area of the title appears to be text,
     the text, otherwise a description of it.
+
+Note: `links`, `keywords`, and `titles` are only available for .note files (and is an empty list otherwise).
 
 ### Other LLM Models
 
