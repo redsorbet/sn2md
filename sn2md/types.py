@@ -1,3 +1,5 @@
+from supernotelib import Notebook
+from abc import ABC, abstractmethod
 from typing import TypedDict
 
 
@@ -12,3 +14,15 @@ class Config(TypedDict):
     model: str
     # The API KEY for the model selected.
     api_key: str | None
+
+
+class ImageExtractor(ABC):
+    @abstractmethod
+    def extract_images(self, filename: str, output_path: str) -> list[str]:
+        pass
+
+    @abstractmethod
+    def get_notebook(self, filename: str) -> Notebook | None:
+        pass
+
+

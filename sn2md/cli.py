@@ -8,11 +8,10 @@ from platformdirs import user_config_dir
 from .importer import (
     DEFAULT_MD_TEMPLATE,
     logger as importer_logger,
-)
-from .importers.note import (
     import_supernote_directory_core,
     import_supernote_file_core,
 )
+from .importers.note import NotebookExtractor
 from .ai_utils import TO_MARKDOWN_TEMPLATE, TO_TEXT_TEMPLATE
 from .types import Config
 
@@ -99,7 +98,16 @@ def import_supernote_file(ctx, filename: str) -> None:
     force = ctx.obj["force"]
     model = ctx.obj["model"]
     try:
-        import_supernote_file_core(filename, output, config, force, model)
+        # TODO check filename extension:
+        # - if its a .pdf import the pdf
+        # - if its a .png/.jpg import the image
+        if filename.endswith(".note"):
+            import_supernote_file_core(NotebookExtractor(), filename, output, config, force, model)
+        elif filename.endswith(".pdf"):
+            pass
+        else:
+            print("Unsupported file format")
+            sys.exit(1)
     except ValueError:
         print("Notebook already processed")
         sys.exit(1)
@@ -113,7 +121,7 @@ def import_supernote_directory(ctx, directory: str) -> None:
     output = ctx.obj["output"]
     force = ctx.obj["force"]
     model = ctx.obj["model"]
-    import_supernote_directory_core(directory, output, config, force, model)
+    import_supernote_directory_core(NotebookExtractor(), directory, output, config, force, model)
 
 
 if __name__ == "__main__":
