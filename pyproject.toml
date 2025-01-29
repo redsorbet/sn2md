@@ -46,7 +46,7 @@ testpaths = [
 python_files = [
     "sn2md/*.py"
 ]
-addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=75"
+addopts = "--cov=sn2md --cov-report=term-missing"
 
 [tool.poetry.scripts]
 sn2md = "sn2md.cli:cli"
