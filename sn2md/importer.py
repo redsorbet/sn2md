@@ -1,18 +1,19 @@
+import base64
 import hashlib
 import logging
-import base64
 import os
+from datetime import datetime
 
 import yaml
 from jinja2 import Template
 
-from .types import Config
-from .ai_utils import image_to_markdown, image_to_text
-from .supernote_utils import (
-    convert_notebook_to_pngs,
-    convert_binary_to_image,
-    load_notebook,
-)
+from sn2md.ai_utils import image_to_markdown, image_to_text
+from sn2md.importers.pdf import PDFExtractor
+from sn2md.importers.png import PNGExtractor
+from sn2md.types import Config, ImageExtractor
+from sn2md.importers.note import NotebookExtractor, convert_binary_to_image
+
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +53,15 @@ tags: supernote
 """
 
 
-def compute_and_check_notebook_hash(notebook_path: str, output_path: str) -> None:
-    # Compute the hash of the notebook file itself using SHA-1 (same as shasum)
-    with open(notebook_path, "rb") as f:
-        notebook_hash = hashlib.sha1(f.read()).hexdigest()
+def compute_and_check_source_hash(source_path: str, output_path: str) -> None:
+    """ Compute and check the hash of the source file against the metadata.
+
+    Raises a ValueError if the source file hasn't been modified.
+
+    Side effect: creates a metadata file in the output directory.
+    """
+    with open(source_path, "rb") as f:
+        source_hash = hashlib.sha1(f.read()).hexdigest()
 
     # Check if the hash already exists in the metadata
     metadata_path = os.path.join(output_path, ".sn2md.metadata.yaml")
@@ -64,20 +70,22 @@ def compute_and_check_notebook_hash(notebook_path: str, output_path: str) -> Non
             metadata = yaml.safe_load(f)
             if (
                 "notebook_hash" in metadata
-                and metadata["notebook_hash"] == notebook_hash
+                and metadata["notebook_hash"] == source_hash
             ):
                 raise ValueError("The notebook hasn't been modified.")
 
     # Store the notebook_hash in the metadata
     with open(metadata_path, "w") as f:
-        yaml.dump({"notebook_hash": notebook_hash, "notebook": notebook_path}, f)
+        yaml.dump({"notebook_hash": source_hash, "notebook": source_path}, f)
 
 
 def import_supernote_file_core(
+    image_extractor: ImageExtractor,
     filename: str,
     output: str,
     config: Config,
     force: bool = False,
+    progress: bool = False,
     model: str | None = None,
 ) -> None:
     global DEFAULT_MD_TEMPLATE
@@ -88,27 +96,27 @@ def import_supernote_file_core(
 
     jinja_template = Template(template)
 
-    # Export images of the note file into a directory with the same basename as the file.
-    notebook = load_notebook(filename)
-
     notebook_name = os.path.splitext(os.path.basename(filename))[0]
     image_output_path = os.path.join(output, notebook_name)
     os.makedirs(image_output_path, exist_ok=True)
     try:
-        compute_and_check_notebook_hash(filename, image_output_path)
+        compute_and_check_source_hash(filename, image_output_path)
     except ValueError as e:
         if not force:
             raise e
         else:
             print(f"Reprocessing {filename}")
 
-    # the notebook_name is YYYYMMDD_HHMMSS
-    year_month_day = f"{notebook_name[:4]}-{notebook_name[4:6]}-{notebook_name[6:8]}"
+    # Get file creation time using os.path
+    creation_time = datetime.fromtimestamp(os.path.getctime(filename))
+    year_month_day = creation_time.strftime("%Y-%m-%d")
     # Perform OCR on each page, asking the LLM to generate a markdown file of a specific format.
 
-    pngs = convert_notebook_to_pngs(notebook, image_output_path)
+    notebook = image_extractor.get_notebook(filename)
+    pngs = image_extractor.extract_images(filename, image_output_path)
     markdown = ""
-    for i, page in enumerate(pngs):
+    page_list = tqdm(pngs, desc="Processing pages", unit="page") if progress else pngs
+    for i, page in enumerate(page_list):
         context = ""
         if i > 0 and len(markdown) > 0:
             # include the last 50 characters...for continuity of the transcription:
@@ -127,13 +135,11 @@ def import_supernote_file_core(
 
     images = [
         {
-            "name": f"{notebook_name}_{i}.png",
-            "rel_path": os.path.join(image_output_path, f"{notebook_name}_{i}.png"),
-            "abs_path": os.path.abspath(
-                os.path.join(image_output_path, f"{notebook_name}_{i}.png")
-            ),
+            "name": os.path.basename(png_path),
+            "rel_path": png_path,
+            "abs_path": os.path.abspath(png_path),
         }
-        for i in range(len(pngs))
+        for png_path in pngs
     ]
 
     # Codes:
@@ -172,14 +178,14 @@ def import_supernote_file_core(
                 "device_path": base64.standard_b64decode(link.get_filepath()),
                 "inout": get_inout_str(link.get_inout()),
             }
-            for link in notebook.links
+            for link in (notebook.links if notebook else [])
         ],
         keywords=[
             {
                 "page_number": keyword.get_page_number(),
                 "content": keyword.get_content().decode("utf-8"),
             }
-            for keyword in notebook.keywords
+            for keyword in (notebook.keywords if notebook else [])
         ],
         titles=[
             {
@@ -192,7 +198,7 @@ def import_supernote_file_core(
                 ),
                 "level": title.metadata["TITLELEVEL"],
             }
-            for title in notebook.titles
+            for title in (notebook.titles if notebook else [])
         ],
     )
 
@@ -207,21 +213,19 @@ def import_supernote_directory_core(
     output: str,
     config: Config,
     force: bool = False,
+    progress: bool = False,
     model: str | None = None,
 ) -> None:
     for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".note"):
-                filename = os.path.join(root, file)
-                try:
-                    import_supernote_file_core(filename, output, config, force, model)
-                except ValueError as e:
-                    logger.debug(f"Skipping {filename}: {e}")
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".note"):
-                filename = os.path.join(root, file)
-                try:
-                    import_supernote_file_core(filename, output, config, force, model)
-                except ValueError as e:
-                    logger.debug(f"Skipping {filename}: {e}")
+        file_list = tqdm(files, desc="Processing files", unit="file") if progress else files
+        for file in file_list:
+            filename = os.path.join(root, file)
+            try:
+                if file.lower().endswith(".note"):
+                    import_supernote_file_core(NotebookExtractor(), filename, output, config, force, progress, model)
+                if file.lower().endswith(".pdf"):
+                    import_supernote_file_core(PDFExtractor(), filename, output, config, force, progress, model)
+                if file.lower().endswith(".png"):
+                    import_supernote_file_core(PNGExtractor(), filename, output, config, force, progress, model)
+            except ValueError as e:
+                logger.debug(f"Skipping {filename}: {e}")

@@ -1,9 +1,14 @@
+import logging
 import os
 from typing import Callable
 from unittest.mock import patch
 
+from sn2md.types import ImageExtractor
+
 import supernotelib as sn
 from supernotelib.converter import ImageConverter, VisibilityOverlay
+
+logger = logging.getLogger(__name__)
 
 
 def load_notebook(path: str) -> sn.Notebook:
@@ -55,3 +60,12 @@ def convert_binary_to_image(notebook, title):
         width_mock.return_value = int(titlerect[2])
         height_mock.return_value = int(titlerect[3])
         return image_converter._create_image_from_decoder(decoder, binary)
+
+
+class NotebookExtractor(ImageExtractor):
+    def extract_images(self, filename: str, output_path: str) -> list[str]:
+        notebook = load_notebook(filename)
+        return convert_notebook_to_pngs(notebook, output_path)
+
+    def get_notebook(self, filename: str) -> sn.Notebook | None:
+        return load_notebook(filename)

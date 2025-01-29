@@ -5,12 +5,16 @@ import tomllib
 import click
 from platformdirs import user_config_dir
 
+from sn2md.importers.pdf import PDFExtractor
+from sn2md.importers.png import PNGExtractor
+
 from .importer import (
     DEFAULT_MD_TEMPLATE,
+    logger as importer_logger,
     import_supernote_directory_core,
     import_supernote_file_core,
-    logger as importer_logger,
 )
+from .importers.note import NotebookExtractor
 from .ai_utils import TO_MARKDOWN_TEMPLATE, TO_TEXT_TEMPLATE
 from .types import Config
 
@@ -66,6 +70,12 @@ def get_config(config_file: str) -> Config:
     help="Force reprocessing even if the notebook hasn't changed.",
 )
 @click.option(
+    "--progress/--no-progress",
+    is_flag=True,
+    default=True,
+    help="Show a progress bar while processing each page.",
+)
+@click.option(
     "--level",
     "-l",
     default="WARNING",
@@ -78,41 +88,59 @@ def get_config(config_file: str) -> Config:
     help="Set the LLM model (default: gpt-4o-mini)",
 )
 @click.pass_context
-def cli(ctx, config, output, force, level, model):
+def cli(ctx, config, output, force, progress, level, model):
     ctx.obj = {}
     ctx.obj["config"] = get_config(config)
     ctx.obj["output"] = output
     ctx.obj["force"] = force
     ctx.obj["level"] = level
     ctx.obj["model"] = model
+    ctx.obj["progress"] = progress
     setup_logging(level)
 
 
-@cli.command(name="file")
+@cli.command(name="file", help="""
+Convert a file to markdown.
+
+Supports Supernote .note and PDF and PNG files.
+""")
 @click.argument("filename", type=click.Path(readable=True, dir_okay=False))
 @click.pass_context
 def import_supernote_file(ctx, filename: str) -> None:
     config = ctx.obj["config"]
     output = ctx.obj["output"]
     force = ctx.obj["force"]
+    progress = ctx.obj["progress"]
     model = ctx.obj["model"]
     try:
-        import_supernote_file_core(filename, output, config, force, model)
+        if filename.lower().endswith(".note"):
+            import_supernote_file_core(NotebookExtractor(), filename, output, config, force, progress, model)
+        elif filename.lower().endswith(".pdf"):
+            import_supernote_file_core(PDFExtractor(), filename, output, config, force, progress, model)
+        elif filename.lower().endswith(".png"):
+            import_supernote_file_core(PNGExtractor(), filename, output, config, force, progress, model)
+        else:
+            print("Unsupported file format")
+            sys.exit(1)
     except ValueError:
         print("Notebook already processed")
         sys.exit(1)
 
 
-@cli.command(name="directory")
+@cli.command(name="directory", help="""
+Convert a directory of files to markdown (unsupported file types are ignored).
+
+Equivalent to running `sn2md file` on each file in the directory.
+""")
 @click.argument("directory", type=click.Path(readable=True, file_okay=False))
 @click.pass_context
 def import_supernote_directory(ctx, directory: str) -> None:
     config = ctx.obj["config"]
     output = ctx.obj["output"]
     force = ctx.obj["force"]
+    progress = ctx.obj["progress"]
     model = ctx.obj["model"]
-    import_supernote_directory_core(directory, output, config, force, model)
-
+    import_supernote_directory_core(directory, output, config, force, progress, model)
 
 if __name__ == "__main__":
     cli()
