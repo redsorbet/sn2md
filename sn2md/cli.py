@@ -142,6 +142,6 @@ def import_supernote_directory(ctx, directory: str) -> None:
     model = ctx.obj["model"]
     import_supernote_directory_core(directory, output, config, force, progress, model)
 
-
+# add unit tests for import_supernote_file and import_supernote_directory AI!
 if __name__ == "__main__":
     cli()
