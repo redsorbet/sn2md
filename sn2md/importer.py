@@ -115,7 +115,8 @@ def import_supernote_file_core(
     notebook = image_extractor.get_notebook(filename)
     pngs = image_extractor.extract_images(filename, image_output_path)
     markdown = ""
-    for i, page in enumerate(tqdm(pngs, desc="Processing pages", unit="page")):
+    page_list = tqdm(pngs, desc="Processing pages", unit="page") if progress else pngs
+    for i, page in enumerate(page_list):
         context = ""
         if i > 0 and len(markdown) > 0:
             # include the last 50 characters...for continuity of the transcription:
@@ -216,7 +217,8 @@ def import_supernote_directory_core(
     model: str | None = None,
 ) -> None:
     for root, _, files in os.walk(directory):
-        for file in tqdm(files, desc="Processing files", unit="file"):
+        file_list = tqdm(files, desc="Processing files", unit="file") if progress else files
+        for file in file_list:
             filename = os.path.join(root, file)
             try:
                 if file.lower().endswith(".note"):

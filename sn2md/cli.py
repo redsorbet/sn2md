@@ -70,9 +70,9 @@ def get_config(config_file: str) -> Config:
     help="Force reprocessing even if the notebook hasn't changed.",
 )
 @click.option(
-    "--progress",
-    "-p",
+    "--progress/--no-progress",
     is_flag=True,
+    default=True,
     help="Show a progress bar while processing each page.",
 )
 @click.option(

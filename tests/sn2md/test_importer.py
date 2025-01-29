@@ -77,7 +77,7 @@ def test_import_supernote_file_core(temp_dir):
         mock_extractor.get_notebook.return_value = mock_notebook
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
 
-        import_supernote_file_core(mock_extractor, filename, output, config, force=True)
+        import_supernote_file_core(mock_extractor, filename, output, config, force=True, progress=False)
 
         mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
         assert mock_image_to_md.call_count == 2
@@ -114,23 +114,42 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
         mock_extractor.get_notebook.return_value = None
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
 
-        import_supernote_file_core(mock_extractor, filename, output, config, force=True)
+        import_supernote_file_core(mock_extractor, filename, output, config, force=True, progress=False)
 
         mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
         assert mock_image_to_md.call_count == 2
 
 
-def test_import_supernote_directory_core(temp_dir):
+@pytest.mark.parametrize("progress, force", [(True, True), (True, False), (False, True), (False, False)])
+def test_import_supernote_directory_core(temp_dir, progress, force):
     directory = temp_dir
     output = temp_dir
-    template_path = None
+    config = None
 
     note_file = os.path.join(directory, "test.note")
     with open(note_file, "w") as f:
         f.write("test content")
 
-    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file:
-        notebook_extractor = NotebookExtractor()
-        import_supernote_directory_core(notebook_extractor, directory, output, template_path, force=True)
-        assert mock_import_file.call_count == 2
-        mock_import_file.assert_any_call(notebook_extractor, note_file, output, template_path, True, None)
+    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file, patch('sn2md.importer.tqdm') as mock_tqdm:
+        import_supernote_directory_core(directory, output, config, force=force, progress=progress)
+        assert mock_import_file.call_count == 1
+        assert mock_import_file.call_args_list[0][0][1:] == (note_file, output, config, force, progress, None)
+        assert mock_tqdm.called == progress
+
+
+@pytest.mark.parametrize("progress", [True, False])
+def test_import_supernote_directory_core(temp_dir, progress):
+    directory = temp_dir
+    output = temp_dir
+    config = None
+
+    note_file = os.path.join(directory, "test.note")
+    with open(note_file, "w") as f:
+        f.write("test content")
+
+    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file, patch('sn2md.importer.tqdm') as mock_tqdm:
+        mock_tqdm.return_value = [note_file]
+        import_supernote_directory_core(directory, output, config, force=True, progress=progress)
+        assert mock_import_file.call_count == 1
+        assert mock_import_file.call_args_list[0][0][1:] == (note_file, output, config, True, progress, None)
+        assert mock_tqdm.called == progress
