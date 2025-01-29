@@ -5,7 +5,6 @@ from sn2md.types import ImageExtractor
 
 
 class PNGExtractor(ImageExtractor):
-    # Write a unit test for this method AI!
     def extract_images(self, filename: str, output_path: str) -> list[str]:
         file_name = os.path.join(output_path, os.path.basename(filename))
         shutil.copy(filename, file_name)
