@@ -35,6 +35,7 @@ def get_config(config_file: str) -> Config:
         "template": DEFAULT_MD_TEMPLATE,
         "model": "gpt-4o-mini",
         "api_key": None,
+        "output_type": "md"
     }
     try:
         with open(config_file, "rb") as f:
@@ -64,6 +65,13 @@ def get_config(config_file: str) -> Config:
     help="Output directory for images and files (default: supernote)",
 )
 @click.option(
+    "--output-type",
+    "-t",
+    default="md",
+    help="Output markdown or orgmode; md, org. (default: md)",
+)
+
+@click.option(
     "--force",
     "-f",
     is_flag=True,
@@ -88,10 +96,11 @@ def get_config(config_file: str) -> Config:
     help="Set the LLM model (default: gpt-4o-mini)",
 )
 @click.pass_context
-def cli(ctx, config, output, force, progress, level, model):
+def cli(ctx, config, output, output_type, force, progress, level, model):
     ctx.obj = {}
     ctx.obj["config"] = get_config(config)
     ctx.obj["output"] = output
+    ctx.obj["output_type"] = output_type
     ctx.obj["force"] = force
     ctx.obj["level"] = level
     ctx.obj["model"] = model
@@ -109,16 +118,18 @@ Supports Supernote .note and PDF and PNG files.
 def import_supernote_file(ctx, filename: str) -> None:
     config = ctx.obj["config"]
     output = ctx.obj["output"]
+    output_type = ctx.obj["output_type"]
     force = ctx.obj["force"]
     progress = ctx.obj["progress"]
     model = ctx.obj["model"]
+
     try:
         if filename.lower().endswith(".note"):
-            import_supernote_file_core(NotebookExtractor(), filename, output, config, force, progress, model)
+            import_supernote_file_core(NotebookExtractor(), filename, output, output_type, config, force, progress, model)
         elif filename.lower().endswith(".pdf"):
-            import_supernote_file_core(PDFExtractor(), filename, output, config, force, progress, model)
+            import_supernote_file_core(PDFExtractor(), filename, output, output_type, config, force, progress, model)
         elif filename.lower().endswith(".png"):
-            import_supernote_file_core(PNGExtractor(), filename, output, config, force, progress, model)
+            import_supernote_file_core(PNGExtractor(), filename, output, output_type, config, force, progress, model)
         else:
             print("Unsupported file format")
             sys.exit(1)

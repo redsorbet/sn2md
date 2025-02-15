@@ -18,6 +18,40 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_ORG_TEMPLATE = """
+#+title: {{title}}
+#+filetags: supernote
+
+{{markdown}}
+
+* Images
+{% for image in images %}
+- [[{{image.rel_path}}][{{image.name}}]]
+{%- endfor %}
+
+{% if keywords %}
+* Keywords
+{% for keyword in keywords %}
+- Page {{ keyword.page_number }}: {{ keyword.content }}
+{%- endfor %}
+{%- endif %}
+
+{% if links %}
+* Links
+{% for link in links %}
+- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} [[{{ link.name | replace('.note', '')}}]]
+{%- endfor %}
+{%- endif %}
+
+{% if titles %}
+* Titles
+{% for title in titles %}
+- Page {{ title.page_number }}: Level {{ title.level }} "{{ title.content }}"
+{%- endfor %}
+{%- endif %}
+"""
+
+
 DEFAULT_MD_TEMPLATE = """---
 created: {{year_month_day}}
 tags: supernote
@@ -52,6 +86,10 @@ tags: supernote
 {%- endif %}
 """
 
+TEMPLATES = {
+    "md": DEFAULT_MD_TEMPLATE,
+    "org": DEFAULT_ORG_TEMPLATE
+}
 
 def compute_and_check_source_hash(source_path: str, output_path: str) -> None:
     """ Compute and check the hash of the source file against the metadata.
@@ -83,13 +121,13 @@ def import_supernote_file_core(
     image_extractor: ImageExtractor,
     filename: str,
     output: str,
+    output_type: str,
     config: Config,
     force: bool = False,
     progress: bool = False,
     model: str | None = None,
 ) -> None:
-    global DEFAULT_MD_TEMPLATE
-    template = DEFAULT_MD_TEMPLATE
+    template = TEMPLATES[output_type]
 
     if config["template"]:
         template = config["template"]
@@ -202,10 +240,10 @@ def import_supernote_file_core(
         ],
     )
 
-    with open(os.path.join(image_output_path, f"{notebook_name}.md"), "w") as f:
+    with open(os.path.join(image_output_path, f"{notebook_name}.{output_type}"), "w") as f:
         _ = f.write(jinja_markdown)
 
-    print(os.path.join(image_output_path, f"{notebook_name}.md"))
+    print(os.path.join(image_output_path, f"{notebook_name}.{output_type}"))
 
 
 def import_supernote_directory_core(
