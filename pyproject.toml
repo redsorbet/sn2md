@@ -1,3 +1,6 @@
+[project]
+name = "sn2md"
+
 [tool.basedpyright]
 extraPaths = ["summarizer"]
 reportUnknownArgumentType = false
