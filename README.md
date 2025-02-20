@@ -45,6 +45,8 @@ default location is platform specific (eg, `~/Library/Application Support/sn2md.
 
 Values that you can configure:
 - `template`: The output template to generate markdown.
+- `output_filename_template`: The filename that is generated. All template variables are available. (default: `{{file_basename}}.md`).
+- `output_path_template`: The directory that is created to store output. All template variables are available. (default: `{{file_basename}}`).
 - `prompt`: The prompt sent to the LLM. Requires a `{context}` placeholder
   to help the AI understand the context of the previous page.
 - `title_prompt`: The prompt sent to the OpenAI API to decode any titles (H1-H4 supernote highlights).
@@ -130,8 +132,11 @@ tags: supernote
 ```
 
 Variables supplied to the template:
+- `file_name`: The file name (including its extension).
+- `file_basename`: The file name without its extension.
 - `year_month_day`: The date the note was created (eg, 2024-05-12).
-- `markdown`: The markdown content of the note.
+- `markdown`: The content of the note (deprecated, use `llm_output`).
+- `llm_output`: The content of the note.
 - `images`: an array of image objects with the following properties:
   - `name`: The name of the image file.
   - `rel_path`: The relative path to the image file to where the file was run
@@ -216,14 +221,12 @@ Contributions are welcome. Please open an issue or submit a pull request.
 ### Development
 
 ```sh
-```sh
 git clone https://github.com/yourusername/supernote-importer.git
 - [supernote-tool library](https://github.com/jya-dev/supernote-tool) for .note file parsing.
 cd supernote-importer
 poetry install
 
 pytest
-
 ```
 
 ## License

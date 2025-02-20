@@ -9,13 +9,11 @@ from sn2md.importers.pdf import PDFExtractor
 from sn2md.importers.png import PNGExtractor
 
 from .importer import (
-    DEFAULT_MD_TEMPLATE,
     logger as importer_logger,
     import_supernote_directory_core,
     import_supernote_file_core,
 )
 from .importers.note import NotebookExtractor
-from .ai_utils import TO_MARKDOWN_TEMPLATE, TO_TEXT_TEMPLATE
 from .types import Config
 
 logger = logging.getLogger(__name__)
@@ -29,23 +27,15 @@ def setup_logging(level):
 
 
 def get_config(config_file: str) -> Config:
-    defaults: Config = {
-        "prompt": TO_MARKDOWN_TEMPLATE,
-        "title_prompt": TO_TEXT_TEMPLATE,
-        "template": DEFAULT_MD_TEMPLATE,
-        "model": "gpt-4o-mini",
-        "api_key": None,
-    }
     try:
         with open(config_file, "rb") as f:
-            file_config = {**defaults, **tomllib.load(f)}
-            if "openai_api_key" in file_config:
-                file_config["api_key"] = file_config.pop("openai_api_key")
+            data = tomllib.load(f)
+            file_config = Config(**data)
             return file_config
     except FileNotFoundError:
         print(f"No config file found at {config_file}, using defaults", file=sys.stderr)
 
-    return defaults
+    return Config()
 
 
 @click.group()

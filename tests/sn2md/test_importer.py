@@ -6,9 +6,10 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 import yaml
 
-from sn2md.importer import (compute_and_check_source_hash,
-                            import_supernote_directory_core,
-                            import_supernote_file_core)
+from sn2md.importer import (
+    import_supernote_directory_core,
+    import_supernote_file_core,
+)
 from sn2md.importers.note import NotebookExtractor
 from sn2md.types import Config
 
@@ -21,24 +22,6 @@ def temp_dir():
         yield tmpdirname
 
 
-def test_compute_and_check_notebook_hash(temp_dir):
-    notebook_path = os.path.join(temp_dir, "test.note")
-    metadata_path = os.path.join(temp_dir, ".sn2md.metadata.yaml")
-
-    with open(notebook_path, "w") as f:
-        f.write("test content")
-
-    compute_and_check_source_hash(notebook_path, temp_dir)
-
-    with open(metadata_path, "r") as f:
-        metadata = yaml.safe_load(f)
-        assert "notebook_hash" in metadata
-        assert metadata["notebook"] == notebook_path
-
-    with pytest.raises(ValueError, match="The notebook hasn't been modified."):
-        compute_and_check_source_hash(notebook_path, temp_dir)
-
-
 def test_import_supernote_file_core(temp_dir):
     filename = os.path.join(temp_dir, "test.note")
     output = temp_dir
@@ -46,9 +29,11 @@ def test_import_supernote_file_core(temp_dir):
     with open(filename, "w") as f:
         _ = f.write("test content")
 
-    with patch("sn2md.importer.compute_and_check_source_hash") as mock_hash, patch(
-        "sn2md.importer.image_to_markdown"
-    ) as mock_image_to_md, patch("builtins.open", mock_open()) as mock_file:
+    with (
+        patch("sn2md.importer.check_metadatafile") as mock_hash,
+        patch("sn2md.importer.image_to_markdown") as mock_image_to_md,
+        patch("builtins.open", mock_open()) as mock_file,
+    ):
         mock_link = Mock()
         mock_link.get_page_number.return_value = 0
         mock_link.type.return_value = 1
@@ -67,6 +52,8 @@ def test_import_supernote_file_core(temp_dir):
         mock_image_to_md.side_effect = ["markdown1", "markdown2"]
 
         config: Config = {
+            "output_path_template": "{{file_basename}}",
+            "output_filename_template": "{{file_basename}}.md",
             "prompt": "TO_MARKDOWN_TEMPLATE",
             "title_prompt": "TO_TEXT_TEMPLATE",
             "template": "DEFAULT_MD_TEMPLATE",
@@ -77,7 +64,9 @@ def test_import_supernote_file_core(temp_dir):
         mock_extractor.get_notebook.return_value = mock_notebook
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
 
-        import_supernote_file_core(mock_extractor, filename, output, config, force=True, progress=False)
+        import_supernote_file_core(
+            mock_extractor, filename, output, config, force=True, progress=False
+        )
 
         mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
         assert mock_image_to_md.call_count == 2
@@ -90,9 +79,12 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
     with open(filename, "w") as f:
         _ = f.write("test content")
 
-    with patch("sn2md.importer.compute_and_check_source_hash") as mock_hash, patch(
-        "sn2md.importer.image_to_markdown"
-    ) as mock_image_to_md, patch("builtins.open", mock_open()) as mock_file:
+    with (
+        patch("sn2md.importer.compute_and_check_source_hash") as mock_hash,
+        patch("sn2md.importer.image_to_markdown") as mock_image_to_md,
+        patch("builtins.open", mock_open()) as mock_file,
+        patch("uuid.uuid4", mock_open()) as uuid_gen,
+    ):
         mock_link = Mock()
         mock_link.get_page_number.return_value = 0
         mock_link.type.return_value = 1
@@ -103,7 +95,11 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
 
         mock_image_to_md.side_effect = ["markdown1", "markdown2"]
 
+        uuid_gen.return_value.hex = "1234"
+
         config: Config = {
+            "output_path_template": "{{file_basename}}",
+            "output_filename_template": "{{file_basename}}.md",
             "prompt": "TO_MARKDOWN_TEMPLATE",
             "title_prompt": "TO_TEXT_TEMPLATE",
             "template": "DEFAULT_MD_TEMPLATE",
@@ -114,13 +110,17 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
         mock_extractor.get_notebook.return_value = None
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
 
-        import_supernote_file_core(mock_extractor, filename, output, config, force=True, progress=False)
+        import_supernote_file_core(
+            mock_extractor, filename, output, config, force=True, progress=False
+        )
 
         mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
         assert mock_image_to_md.call_count == 2
 
 
-@pytest.mark.parametrize("progress, force", [(True, True), (True, False), (False, True), (False, False)])
+@pytest.mark.parametrize(
+    "progress, force", [(True, True), (True, False), (False, True), (False, False)]
+)
 def test_import_supernote_directory_core(temp_dir, progress, force):
     directory = temp_dir
     output = temp_dir
@@ -130,10 +130,22 @@ def test_import_supernote_directory_core(temp_dir, progress, force):
     with open(note_file, "w") as f:
         f.write("test content")
 
-    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file, patch('sn2md.importer.tqdm') as mock_tqdm:
-        import_supernote_directory_core(directory, output, config, force=force, progress=progress)
+    with (
+        patch("sn2md.importer.import_supernote_file_core") as mock_import_file,
+        patch("sn2md.importer.tqdm") as mock_tqdm,
+    ):
+        import_supernote_directory_core(
+            directory, output, config, force=force, progress=progress
+        )
         assert mock_import_file.call_count == 1
-        assert mock_import_file.call_args_list[0][0][1:] == (note_file, output, config, force, progress, None)
+        assert mock_import_file.call_args_list[0][0][1:] == (
+            note_file,
+            output,
+            config,
+            force,
+            progress,
+            None,
+        )
         assert mock_tqdm.called == progress
 
 
@@ -147,9 +159,21 @@ def test_import_supernote_directory_core(temp_dir, progress):
     with open(note_file, "w") as f:
         f.write("test content")
 
-    with patch("sn2md.importer.import_supernote_file_core") as mock_import_file, patch('sn2md.importer.tqdm') as mock_tqdm:
+    with (
+        patch("sn2md.importer.import_supernote_file_core") as mock_import_file,
+        patch("sn2md.importer.tqdm") as mock_tqdm,
+    ):
         mock_tqdm.return_value = [note_file]
-        import_supernote_directory_core(directory, output, config, force=True, progress=progress)
+        import_supernote_directory_core(
+            directory, output, config, force=True, progress=progress
+        )
         assert mock_import_file.call_count == 1
-        assert mock_import_file.call_args_list[0][0][1:] == (note_file, output, config, True, progress, None)
+        assert mock_import_file.call_args_list[0][0][1:] == (
+            note_file,
+            output,
+            config,
+            True,
+            progress,
+            None,
+        )
         assert mock_tqdm.called == progress
