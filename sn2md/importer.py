@@ -1,6 +1,7 @@
 import base64
 from typing import Generator
 import uuid
+import shutil
 import logging
 import os
 from contextlib import contextmanager
@@ -33,7 +34,7 @@ def generate_images(
     try:
         yield image_extractor.extract_images(file_name, image_output_path)
     finally:
-        os.removedirs(image_output_path)
+        shutil.rmtree(image_output_path)
 
 
 def process_pages(pngs: list[str], config: Config, model: str, progress: bool) -> str:

@@ -34,8 +34,8 @@ sn2md directory <path_to_directory>
 ```
 
 Notes:
-- A cache file is also generated, so repeated runs don't recreate the same data.
-  You can force a refresh by running with the `--force` flag.
+- If the source file has not changed, repeated runs of commands will print a warning and exit. You can force re-runs by running with the `--force` flag.
+- If the source file has not changed, but the output file has (b/c _maybe_ you modified it manually by adding your own notes?) repeated runs of commands will print a warning and exit. You can force the command with the `--force` flag.
 
 
 ## Configuration
@@ -221,6 +221,63 @@ You are an OCR program. Extract text from the image and format as paragraphs of 
 ```
 
 Please let me know if you find better prompts!
+
+### Output formats
+
+You can output other formats besides markdown. Contributed examples are listed below.
+
+#### Emacs Orgmode
+
+@redsorbet contributed this template. Note the use of `output_filename_template` to change the output extension:
+
+```toml
+output_filename_template = "{{file_basename}}.org"
+
+template = """
+#+title: {{file_basename}}
+#+filetags: supernote
+{{markdown}}
+* Images
+{% for image in images %}
+- [[{{image.rel_path}}][{{image.name}}]]
+{%- endfor %}
+{% if keywords %}
+* Keywords
+{% for keyword in keywords %}
+- Page {{ keyword.page_number }}: {{ keyword.content }}
+{%- endfor %}
+{%- endif %}
+{% if links %}
+* Links
+{% for link in links %}
+- Page {{ link.page_number }}: {{ link.type }} {{ link.inout }} [[{{ link.name | replace('.note', '')}}]]
+{%- endfor %}
+{%- endif %}
+{% if titles %}
+* Titles
+{% for title in titles %}
+- Page {{ title.page_number }}: Level {{ title.level }} "{{ title.content }}"
+{%- endfor %}
+{%- endif %}
+"""
+
+prompt = '''
+###
+Context (the last few lines of orgmode from the previous page):
+{context}
+###
+Convert the image to orgmode:
+- If there is a simple diagram that the mermaid syntax can achieve, create a mermaid org babel codeblock of it. Set the :file argument to a reasonable unique file name
+- When it is unclear what an image is, do not output anything for it.
+- Since this is org mode use latex and the standard begin and end for math equations
+- Support LogSeq syntaxes and dataview "field:: value" syntax.
+- Do not wrap text in codeblocks.
+- Do not mention process or create extra notes.
+- If there are sections then create a new org heading and use relative indentation to infer heading level
+- If there is no obvious title, then create a short headline appropriate for the content.
+- prefer code blocks if a programming language is mentioned
+'''
+```
 
 ## Contributing
 
