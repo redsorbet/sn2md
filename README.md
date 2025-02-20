@@ -1,12 +1,12 @@
-# Supernote to Markdown converter (sn2md)
+# Supernote to text converter (sn2md)
 
-A CLI tool to convert Supernote `.note`, PDFs, and images  to markdown using any LLM supported by the [LLM library](https://llm.datasette.io/en/stable/plugins/directory.html).
+A CLI tool to convert Supernote `.note`, PDFs, and images  to using any LLM supported by the [LLM library](https://llm.datasette.io/en/stable/plugins/directory.html).
 
 ![Supernote to Markdown](docs/supernote-to-markdown.png)
 
 Sample output: [20240712_151149.md](./docs/20240712_151149/20240712_151149.md)
 
-The default LLM prompt with gpt-4o-mini supports:
+The default LLM prompt with gpt-4o-mini is configured to convert images to markdown:
 
 - Supports markdown in .note files (#tags, `## Headers`, `[[Links]]`, etc)
 - Supports basic formatting (lists, tables, etc)
@@ -45,8 +45,8 @@ default location is platform specific (eg, `~/Library/Application Support/sn2md.
 
 Values that you can configure:
 - `template`: The output template to generate markdown.
-- `output_filename_template`: The filename that is generated. All template variables are available. (default: `{{file_basename}}.md`).
-- `output_path_template`: The directory that is created to store output. All template variables are available. (default: `{{file_basename}}`).
+- `output_filename_template`: The filename that is generated. Basic template variables are available. (default: `{{file_basename}}.md`).
+- `output_path_template`: The directory that is created to store output. Basic template variables are available. (default: `{{file_basename}}`).
 - `prompt`: The prompt sent to the LLM. Requires a `{context}` placeholder
   to help the AI understand the context of the previous page.
 - `title_prompt`: The prompt sent to the OpenAI API to decode any titles (H1-H4 supernote highlights).
@@ -68,7 +68,7 @@ Convert the following image to markdown:
 
 template = """
 # Pirate Speak
-{{markdown}}
+{{llm_output}}
 """
 ```
 
@@ -102,7 +102,7 @@ created: {{year_month_day}}
 tags: supernote
 ---
 
-{{markdown}}
+{{llm_output}}
 
 # Images
 {% for image in images %}
@@ -131,17 +131,27 @@ tags: supernote
 {%- endif %}
 ```
 
-Variables supplied to the template:
+Several variables are available to the template.
+
+Basic data about the source file (.note, etc):
 - `file_name`: The file name (including its extension).
 - `file_basename`: The file name without its extension.
-- `year_month_day`: The date the note was created (eg, 2024-05-12).
-- `markdown`: The content of the note (deprecated, use `llm_output`).
-- `llm_output`: The content of the note.
+- `year_month_day`: The date the source file was created (eg, 2024-05-12).
+- `year`: The year the source file was created (eg, 2024).
+- `month`: The month the source file was created (eg, 05).
+- `day`: The day the source file was created (eg, 12).
+- `hour`: The hour the source file was created (eg, 13).
+- `minute`: The minute the source file was created (eg, 13).
+
+Data extracted when converting the source file:
+- `llm_output`: The content of the source file (deprecated `markdown` field still available as well).
 - `images`: an array of image objects with the following properties:
   - `name`: The name of the image file.
   - `rel_path`: The relative path to the image file to where the file was run
     from.
   - `abs_path`: The absolute path to the image file.
+
+Data available in .note source files:
 - `links`: an array of links in or out of a .note file with the following properties:
   - `page_number`: The page number the link is on.
   - `type`: The link type (page, file, web)
@@ -156,8 +166,6 @@ Variables supplied to the template:
   - `level`: The level of the title (1-4).
   - `content`: The content of the title. If the area of the title appears to be text,
     the text, otherwise a description of it.
-
-Note: `links`, `keywords`, and `titles` are only available for .note files (and is an empty list otherwise).
 
 ### Other LLM Models
 

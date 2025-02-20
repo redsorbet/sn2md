@@ -1,83 +1,88 @@
 import base64
+from typing import Generator
 import uuid
 import logging
 import os
+from contextlib import contextmanager
 from datetime import datetime
 
 from jinja2 import Template
+from supernotelib import Notebook
 
 from sn2md.ai_utils import image_to_markdown, image_to_text
 from sn2md.importers.pdf import PDFExtractor
 from sn2md.importers.png import PNGExtractor
 from sn2md.types import Config, ImageExtractor
 from sn2md.importers.note import NotebookExtractor, convert_binary_to_image
-from sn2md.metadata import (check_metadata_file, write_metadata_file)
+from sn2md.metadata import check_metadata_file, write_metadata_file
 
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 
-def import_supernote_file_core(
-    image_extractor: ImageExtractor,
-    file_name: str,
-    output: str,
-    config: Config,
-    force: bool = False,
-    progress: bool = False,
-    model: str | None = None,
-) -> None:
-    jinja_template = Template(config.template)
-
-    file_basename = os.path.splitext(os.path.basename(file_name))[0]
-    # use a random name for the output directory
+@contextmanager
+def generate_images(
+    image_extractor: ImageExtractor, file_name: str, output: str
+) -> Generator[list[str], None, None]:
     image_output_path = os.path.join(output, uuid.uuid4().hex)
     os.makedirs(image_output_path, exist_ok=True)
 
     logger.debug("Storing images in %s", image_output_path)
+
     try:
-        check_metadata_file(file_name)
-    except ValueError as e:
-        if not force:
-            raise e
-        else:
-            print(f"Reprocessing {file_name}")
+        yield image_extractor.extract_images(file_name, image_output_path)
+    finally:
+        os.removedirs(image_output_path)
 
-    # Get file creation time using os.path
-    creation_time = datetime.fromtimestamp(os.path.getctime(file_name))
-    year_month_day = creation_time.strftime("%Y-%m-%d")
-    # Perform OCR on each page, asking the LLM to generate a markdown file of a specific format.
 
-    notebook = image_extractor.get_notebook(file_name)
-    pngs = image_extractor.extract_images(file_name, image_output_path)
-    markdown = ""
+def process_pages(pngs: list[str], config: Config, model: str, progress: bool) -> str:
     page_list = tqdm(pngs, desc="Processing pages", unit="page") if progress else pngs
+    template_output = ""
     for i, page in enumerate(page_list):
         context = ""
-        if i > 0 and len(markdown) > 0:
+        if i > 0 and len(template_output) > 0:
             # include the last 50 characters...for continuity of the transcription:
-            context = markdown[-50:]
-        markdown = (
-            markdown
+            context = template_output[-50:]
+        template_output = (
+            template_output
             + "\n"
             + image_to_markdown(
                 page,
                 context,
                 config.api_key,
-                model if model else config.model,
+                model,
                 config.prompt,
             )
         )
+    return template_output
 
-    images = [
-        {
-            "name": os.path.basename(png_path),
-            "rel_path": png_path,
-            "abs_path": os.path.abspath(png_path),
-        }
-        for png_path in pngs
-    ]
 
+def create_basic_context(file_basename: str, file_name: str) -> dict:
+    return {
+        "file_basename": file_basename,
+        "file_name": file_name,
+        "year_month_day": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%Y-%m-%d"
+        ),
+        "year": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%Y"
+        ),
+        "month": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%m"
+        ),
+        "day": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%d"
+        ),
+        "hour": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%H"
+        ),
+        "minute": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
+            "%M"
+        ),
+    }
+
+def create_notebook_context(notebook: Notebook, config: Config, model: str) -> dict:
     # Codes:
     # TODO add a pull request for this feature:
     # https://github.com/jya-dev/supernote-tool/blob/807d5fa4bf524fdb1f9c7f1c67ed66ea96a49db5/supernotelib/fileformat.py#L236
@@ -99,13 +104,7 @@ def import_supernote_file_core(
 
         return "unknown"
 
-    # TODO add pages - for each page include keywords and titles
-    context = {
-        "file_basename": file_basename,
-        "file_name": file_name,
-        "year_month_day": year_month_day,
-        "markdown": markdown,
-        "images": images,
+    return {
         "links": [
             {
                 "page_number": link.get_page_number(),
@@ -131,7 +130,7 @@ def import_supernote_file_core(
                 "content": image_to_text(
                     convert_binary_to_image(notebook, title),
                     config.api_key,
-                    config.model,
+                    model,
                     config.title_prompt,
                 ),
                 "level": title.metadata["TITLELEVEL"],
@@ -140,7 +139,56 @@ def import_supernote_file_core(
         ],
     }
 
-    jinja_markdown = jinja_template.render(context)
+
+def create_context(
+    notebook: Notebook | None,
+    pngs: list[str],
+    config: Config,
+    file_name: str,
+    model: str,
+    template_output: str,
+) -> dict:
+    file_basename = os.path.splitext(os.path.basename(file_name))[0]
+    images = [
+        {
+            "name": os.path.basename(png_path),
+            "rel_path": png_path,
+            "abs_path": os.path.abspath(png_path),
+        }
+        for png_path in pngs
+    ]
+
+    # TODO add pages - for each page include keywords and titles
+    context = {
+        "markdown": template_output,
+        "llm_output": template_output,
+        "images": images,
+        **create_basic_context(file_basename, file_name),
+    }
+
+    if notebook:
+        return {
+            **context,
+            **create_notebook_context(notebook, config, model),
+        }
+
+    return {
+        **context,
+        "links": [],
+        "keywords": [],
+        "titles": [],
+    }
+
+
+def generate_output(
+    pngs: list[str],
+    config: Config,
+    context: dict,
+    file_name: str,
+    output: str,
+    template,
+) -> None:
+    jinja_markdown = template.render(context)
 
     output_filename_template = Template(config.output_filename_template)
     output_filename = output_filename_template.render(context)
@@ -161,12 +209,47 @@ def import_supernote_file_core(
         os.rename(png_path, os.path.join(output_path, png_name))
 
     write_metadata_file(file_name, output_path_and_file)
-    # TODO create the cache file
 
-    os.removedirs(image_output_path)
     logger.debug("Moved images to %s", output_path)
 
-    print(os.path.join(output_path, f"{file_basename}.md"))
+    print(output_path_and_file)
+
+
+def verify_metadata_file(config: Config, output: str, file_name: str) -> None:
+    file_basename = os.path.splitext(os.path.basename(file_name))[0]
+    basic_context = create_basic_context(file_basename, file_name)
+
+    output_path_template = Template(config.output_path_template)
+    output_path = output_path_template.render(basic_context)
+    output_path = os.path.join(output, output_path)
+
+    check_metadata_file(output_path)
+
+
+def import_supernote_file_core(
+    image_extractor: ImageExtractor,
+    file_name: str,
+    output: str,
+    config: Config,
+    force: bool = False,
+    progress: bool = False,
+    model: str | None = None,
+) -> None:
+    if not force:
+        verify_metadata_file(config, output, file_name)
+
+    model = model if model else config.model
+    template = Template(config.template)
+
+    with generate_images(image_extractor, file_name, output) as pngs:
+        template_output = process_pages(pngs, config, model, progress)
+
+        notebook = image_extractor.get_notebook(file_name)
+        context = create_context(
+            notebook, pngs, config, file_name, model, template_output
+        )
+
+        generate_output(pngs, config, context, file_name, output, template)
 
 
 def import_supernote_directory_core(

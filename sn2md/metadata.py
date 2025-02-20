@@ -1,6 +1,7 @@
 import hashlib
 import os
 import yaml
+from dataclasses import asdict
 from .types import ConversionMetadata
 
 
@@ -24,10 +25,10 @@ def check_metadata_file(metadata_file: str) -> ConversionMetadata | None:
                 source_hash = hashlib.sha1(f.read()).hexdigest()
 
             if metadata.input_hash == source_hash:
-                raise ValueError(f"{metadata.input_file} hasn't changed!")
+                raise ValueError(f"Input {metadata.input_file} has NOT changed!")
 
             if metadata.output_hash != output_hash:
-                raise ValueError(f"{metadata.output_file} has been changed!")
+                raise ValueError(f"Output {metadata.output_file} HAS been changed!")
 
             return metadata
 
@@ -44,12 +45,12 @@ def write_metadata_file(source_file: str, output_file: str) -> None:
     metadata_path = os.path.join(output_path, ".sn2md.metadata.yaml")
     with open(metadata_path, "w") as f:
         yaml.dump(
-            ConversionMetadata(
+            asdict(ConversionMetadata(
                 input_file=source_file,
                 input_hash=source_hash,
                 output_file=output_file,
                 output_hash=output_hash,
-            ),
+            )),
             f,
         )
 

@@ -25,7 +25,7 @@ created: {{year_month_day}}
 tags: supernote
 ---
 
-{{markdown}}
+{{llm_output}}
 
 # Images
 {% for image in images %}

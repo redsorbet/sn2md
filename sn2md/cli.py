@@ -112,8 +112,8 @@ def import_supernote_file(ctx, filename: str) -> None:
         else:
             print("Unsupported file format")
             sys.exit(1)
-    except ValueError:
-        print("Notebook already processed")
+    except ValueError as e:
+        print(e)
         sys.exit(1)
 
 
