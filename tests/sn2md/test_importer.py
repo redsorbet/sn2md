@@ -35,6 +35,8 @@ def test_import_supernote_file_core(temp_dir):
         patch("sn2md.importer.write_metadata_file") as mock_write_metadata,
         patch("builtins.open", mock_open()) as mock_file,
         patch("uuid.uuid4") as mock_uuid,
+        patch("os.rename") as mock_rename,
+        patch("os.rename") as mock_rename,
     ):
         mock_uuid.return_value.hex = "test-uuid"
         mock_extractor = Mock()
@@ -68,6 +70,8 @@ def test_import_supernote_file_core(temp_dir):
         mock_check_metadata.assert_not_called()
         assert mock_image_to_md.call_count == 2
         mock_write_metadata.assert_called_once()
+        assert mock_rename.call_count == 2
+        assert mock_rename.call_count == 2
 
 
 def test_import_supernote_file_core_non_notebook(temp_dir):
