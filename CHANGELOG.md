@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.2.0
+
+### Added
+
+- Adds configuration options `output_path_template` and `output_filename_template`
+  to allow for customization of the output file path and name and extension.
+- Prevents overwriting of output files if they've been modified since they were
+  created (override with `--force` option).
+- Documentation: adds emacs org-mode example.
+
+### Changed
+
+- The `markdown` template variable has been deprecated in favor of `llm_output`
+- Bugfix: ensure metadata files are only created if output is generated.
+
 ## v2.1.0
 
 ### Added

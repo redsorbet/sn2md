@@ -3,24 +3,6 @@ from PIL.Image import Image
 
 import llm
 
-TO_MARKDOWN_TEMPLATE = """###
-Context (the last few lines of markdown from the previous page):
-{context}
-###
-Convert the image to markdown:
-- If there is a simple diagram that the mermaid syntax can achieve, create a mermaid codeblock of it.
-- When it is unclear what an image is, don't output anything for it.
-- Use $$, $ latex math blocks for math equations.
-- Support Obsidian syntaxes and dataview "field:: value" syntax.
-- Do not wrap text in codeblocks.
-"""
-
-TO_TEXT_TEMPLATE = """
-Convert the following image to text.
-- If the image does not appear to be text, output a brief description (no more than 4 words), prepended with "Image: "
-"""
-
-
 def convert_image(
     text: str, attachment: llm.Attachment, api_key: str | None, model: str
 ) -> str:
@@ -43,7 +25,7 @@ def image_to_markdown(
 def _image_to_bytes(image: Image) -> bytes:
     # Convert PIL Image to bytes
     img_byte_arr = BytesIO()
-    image.save(img_byte_arr, format='PNG')
+    image.save(img_byte_arr, format="PNG")
     return img_byte_arr.getvalue()
 
 

@@ -1,3 +1,6 @@
+[project]
+name = "sn2md"
+
 [tool.basedpyright]
 extraPaths = ["summarizer"]
 reportUnknownArgumentType = false
@@ -8,8 +11,8 @@ reportMissingParameterType = false
 
 [tool.poetry]
 name = "sn2md"
-version = "2.1.0"
-description = "Convert Supernote .note files to markdown"
+version = "2.2.0"
+description = "Convert Supernote .note, PDF, or image files to text"
 authors = ["Dane Summers <dsummersl@yahoo.com>"]
 readme = "README.md"
 
@@ -24,9 +27,10 @@ supernotelib = "^0.6.2"
 pyyaml = "^6.0.1"
 platformdirs = "^4.2.2"
 jinja2 = "^3.1.4"
-llm = "^0.19.1"
+llm = "^0.22"
 pymupdf = "^1.25.2"
 tqdm = "^4.67.1"
+pydantic = "^2.10.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -46,7 +50,7 @@ testpaths = [
 python_files = [
     "sn2md/*.py"
 ]
-addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=75"
+addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=85"
 
 [tool.poetry.scripts]
 sn2md = "sn2md.cli:cli"
