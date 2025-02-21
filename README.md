@@ -224,11 +224,11 @@ Please let me know if you find better prompts!
 
 ### Output formats
 
-You can output other formats besides markdown. Contributed examples are listed below.
+You can output other formats besides markdown. Contributed examples of configuration files are listed below.
 
 #### Emacs Orgmode
 
-@redsorbet contributed this template. Note the use of `output_filename_template` to change the output extension:
+@redsorbet contributed this configuration. Note the use of `output_filename_template` to change the output extension:
 
 ```toml
 output_filename_template = "{{file_basename}}.org"
@@ -276,6 +276,35 @@ Convert the image to orgmode:
 - If there are sections then create a new org heading and use relative indentation to infer heading level
 - If there is no obvious title, then create a short headline appropriate for the content.
 - prefer code blocks if a programming language is mentioned
+'''
+```
+
+#### HTML
+
+A simple Supernote to HTML configuration file:
+
+```toml
+output_filename_template = "{{file_basename}}.html"
+
+template = """
+<!DOCTYPE html>
+<html lang="en">
+<body>
+  <h1>{{file_basename}}</h1>
+
+  {{llm_output}}
+</body>
+</html>
+"""
+
+prompt = '''
+###
+Context (the last few lines of HTML from the previous page):
+{context}
+###
+Convert the image to HTML:
+- Use plain HTML (no markdown).
+- Only use the following HTML tags: <h2>, <h3>, <p>, <hr>, <ul>, <b>, <i>, <table>, <tr>, <td>
 '''
 ```
 
