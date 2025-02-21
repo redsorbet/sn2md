@@ -281,7 +281,7 @@ Convert the image to orgmode:
 
 #### HTML
 
-A simple Supernote to HTML configuration file:
+A simple Supernote to HTML configuration file to create an HTML page (using tailwind for image styling):
 
 ```toml
 output_filename_template = "{{file_basename}}.html"
@@ -289,22 +289,98 @@ output_filename_template = "{{file_basename}}.html"
 template = """
 <!DOCTYPE html>
 <html lang="en">
-<body>
-  <h1>{{file_basename}}</h1>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <title>{{file_basename}}</title>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- Metadata -->
+        <div class="mb-8 text-gray-600">
+            <p>Created: <span>{{ year_month_day }}</span></p>
+        </div>
 
-  {{llm_output}}
+        <!-- LLM Output -->
+        <div class="mb-8">
+            <h1>{{file_basename}}</h1>
+            {{ llm_output }}
+        </div>
+
+        <!-- Images Section -->
+        <div class="mb-8">
+            <h2>Images</h2>
+            <div class="flex flex-wrap gap-6">
+                {% for image in images %}
+                <img src="{{ image.name }}" alt="{{ image.name }}" class="max-w-sm border border-gray-200 rounded-md shadow-md w-1/6">
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Keywords Section -->
+        {% if keywords %}
+        <div class="mb-8">
+            <h2>Keywords</h2>
+            <ul class="space-y-2">
+                {% for keyword in keywords %}
+                <li class="flex">
+                    <span class="font-medium w-20">Page {{ keyword.page_number }}:</span>
+                    <span>{{ keyword.content }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Links Section -->
+        {% if links %}
+        <div class="mb-8">
+            <h2>Links</h2>
+            <ul class="space-y-2">
+                {% for link in links %}
+                <li class="flex">
+                    <span class="font-medium w-20">Page {{ link.page_number }}:</span>
+                    <span>{{ link.type }} {{ link.inout }} <a href="#" class="text-blue-600 hover:underline">{{ link.name | replace('.note', '') }}</a></span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Titles Section -->
+        {% if titles %}
+        <div class="mb-8">
+            <h2>Titles</h2>
+            <ul class="space-y-2">
+                {% for title in titles %}
+                <li class="flex">
+                    <span class="font-medium w-20">Page {{ title.page_number }}:</span>
+                    <span>Level {{ title.level }} "{{ title.content }}"</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
 </body>
 </html>
 """
 
-prompt = '''
-###
-Context (the last few lines of HTML from the previous page):
+prompt = '''###
+Context (the last few lines of HTML from the previous page/image):
 {context}
 ###
-Convert the image to HTML:
-- Use plain HTML (no markdown).
-- Only use the following HTML tags: <h2>, <h3>, <p>, <hr>, <ul>, <b>, <i>, <table>, <tr>, <td>
+Convert the image to text:
+- Transcribe the text from the image to text.
+- Style the text as HTML (assume its already within the body tag).
+- Any lines that start with dashes, should be considered unordered lists.
+- Use the context above to continue any lists, paragraphs or sections (ie, if its a list, assume the opening <ul> exists, continue it, and close it).
+- Do not include the context above in any output.
+- Do not export any markdown syntax.
+- Do not use code blocks.
+- Do not output anything if no text was detected.
+- Ignore drawings.
 '''
 ```
 
