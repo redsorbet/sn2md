@@ -216,6 +216,7 @@ def generate_output(
     print(output_path_and_file)
 
 
+# Write unit tests for verify_metadata_file AI!
 def verify_metadata_file(config: Config, output: str, file_name: str) -> None:
     file_basename = os.path.splitext(os.path.basename(file_name))[0]
     basic_context = create_basic_context(file_basename, file_name)
