@@ -8,7 +8,8 @@
   to allow for customization of the output file path and name and extension.
 - Prevents overwriting of output files if they've been modified since they were
   created (override with `--force` option).
-- Documentation: adds emacs org-mode example.
+- Adds `mtime` and `ctime` to the template variables to support custom date formatting.
+- Documentation: adds emacs org-mode and HTML output examples.
 
 ### Changed
 
