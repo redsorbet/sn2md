@@ -9,11 +9,6 @@ from sn2md.cli import cli, get_config, logger, setup_logging
 from sn2md.types import DEFAULT_MD_TEMPLATE, TO_MARKDOWN_TEMPLATE, TO_TEXT_TEMPLATE
 
 
-@pytest.fixture
-def cli_runner():
-    return CliRunner()
-
-
 @pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING"])
 def test_setup_logging_sets_debug_level(level):
     setup_logging(level)
@@ -47,40 +42,30 @@ def test_get_config_from_file(path, api_key):
     assert config.api_key == api_key
 
 
-def test_import_supernote_file(cli_runner):
+@pytest.mark.parametrize("extractor, output", [
+  ("NotebookExtractor", "test.note"),
+  ("PDFExtractor", "test.pdf"),
+  ("PNGExtractor", "test.png"),
+])
+def test_import_supernote_file(extractor, output):
+    cli_runner = CliRunner()
     with patch("sn2md.cli.import_supernote_file_core") as mock_import_file:
-        result = cli_runner.invoke(cli, ["file", "test.note"])
+        result = cli_runner.invoke(cli, ["file", output])
         assert result.exit_code == 0
         mock_import_file.assert_called_once()
-        assert mock_import_file.call_args[0][0].__class__.__name__ == "NotebookExtractor"
-        assert mock_import_file.call_args[0][1] == "test.note"
+        assert mock_import_file.call_args[0][0].__class__.__name__ == extractor
+        assert mock_import_file.call_args[0][1] == output
 
 
-def test_import_supernote_file_pdf(cli_runner):
-    with patch("sn2md.cli.import_supernote_file_core") as mock_import_file:
-        result = cli_runner.invoke(cli, ["file", "test.pdf"])
-        assert result.exit_code == 0
-        mock_import_file.assert_called_once()
-        assert mock_import_file.call_args[0][0].__class__.__name__ == "PDFExtractor"
-        assert mock_import_file.call_args[0][1] == "test.pdf"
-
-
-def test_import_supernote_file_png(cli_runner):
-    with patch("sn2md.cli.import_supernote_file_core") as mock_import_file:
-        result = cli_runner.invoke(cli, ["file", "test.png"])
-        assert result.exit_code == 0
-        mock_import_file.assert_called_once()
-        assert mock_import_file.call_args[0][0].__class__.__name__ == "PNGExtractor"
-        assert mock_import_file.call_args[0][1] == "test.png"
-
-
-def test_import_supernote_file_unsupported(cli_runner):
+def test_import_supernote_file_unsupported():
+    cli_runner = CliRunner()
     result = cli_runner.invoke(cli, ["file", "test.txt"])
     assert result.exit_code == 1
     assert "Unsupported file format" in result.output
 
 
-def test_import_supernote_file_error(cli_runner):
+def test_import_supernote_file_error():
+    cli_runner = CliRunner()
     with patch("sn2md.cli.import_supernote_file_core") as mock_import_file:
         mock_import_file.side_effect = ValueError("Test error")
         result = cli_runner.invoke(cli, ["file", "test.note"])
