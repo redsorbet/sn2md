@@ -1,6 +1,7 @@
 import base64
 import os
 import tempfile
+from datetime import datetime
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -189,6 +190,58 @@ def test_create_notebook_context():
 
         mock_image_to_text.assert_called_once()
         mock_convert_image.assert_called_once_with(mock_notebook, mock_title)
+
+
+def test_verify_metadata_file(temp_dir):
+    filename = os.path.join(temp_dir, "test.note")
+    output = temp_dir
+
+    with open(filename, "w") as f:
+        _ = f.write("test content")
+
+    config = Config(
+        output_path_template="{{file_basename}}",
+        output_filename_template="{{file_basename}}.md",
+        prompt="TO_MARKDOWN_TEMPLATE",
+        title_prompt="TO_TEXT_TEMPLATE",
+        template="{{markdown}}",
+        model="mock-model",
+        api_key="mock-key"
+    )
+
+    with patch("sn2md.importer.check_metadata_file") as mock_check_metadata:
+        verify_metadata_file(config, output, filename)
+        mock_check_metadata.assert_called_once_with(os.path.join(output, "test"))
+
+
+def test_verify_metadata_file_nested_path(temp_dir):
+    filename = os.path.join(temp_dir, "test.note")
+    output = temp_dir
+
+    with open(filename, "w") as f:
+        _ = f.write("test content")
+
+    config = Config(
+        output_path_template="notes/{{year}}/{{month}}/{{file_basename}}",
+        output_filename_template="{{file_basename}}.md",
+        prompt="TO_MARKDOWN_TEMPLATE",
+        title_prompt="TO_TEXT_TEMPLATE",
+        template="{{markdown}}",
+        model="mock-model",
+        api_key="mock-key"
+    )
+
+    expected_path = os.path.join(
+        output,
+        "notes",
+        datetime.fromtimestamp(os.path.getctime(filename)).strftime("%Y"),
+        datetime.fromtimestamp(os.path.getctime(filename)).strftime("%m"),
+        "test"
+    )
+
+    with patch("sn2md.importer.check_metadata_file") as mock_check_metadata:
+        verify_metadata_file(config, output, filename)
+        mock_check_metadata.assert_called_once_with(expected_path)
 
 
 @pytest.mark.parametrize("progress", [True, False])
