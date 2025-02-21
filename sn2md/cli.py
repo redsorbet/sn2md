@@ -97,7 +97,6 @@ Supports Supernote .note and PDF and PNG files.
 @click.argument("filename", type=click.Path(readable=True, dir_okay=False))
 @click.pass_context
 def import_supernote_file(ctx, filename: str) -> None:
-    # Write unit tests for import_supernote_file() AI!
     config = ctx.obj["config"]
     output = ctx.obj["output"]
     force = ctx.obj["force"]
