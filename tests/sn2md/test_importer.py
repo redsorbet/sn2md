@@ -30,16 +30,13 @@ def test_import_supernote_file_core(temp_dir):
         _ = f.write("test content")
 
     with (
-        patch("sn2md.importer.check_metadatafile") as mock_hash,
+        patch("sn2md.importer.check_metadata_file") as mock_check_metadata,
         patch("sn2md.importer.image_to_markdown") as mock_image_to_md,
+        patch("sn2md.importer.write_metadata_file") as mock_write_metadata,
         patch("builtins.open", mock_open()) as mock_file,
+        patch("uuid.uuid4") as mock_uuid,
     ):
-        mock_link = Mock()
-        mock_link.get_page_number.return_value = 0
-        mock_link.type.return_value = 1
-        mock_link.get_filepath.return_value = base64.standard_b64encode(b"some/path")
-        mock_link.inout.return_value = 1
-
+        mock_uuid.return_value.hex = "test-uuid"
         mock_extractor = Mock()
         mock_notebook = Mock()
         mock_keyword = Mock()
@@ -51,15 +48,15 @@ def test_import_supernote_file_core(temp_dir):
 
         mock_image_to_md.side_effect = ["markdown1", "markdown2"]
 
-        config: Config = {
-            "output_path_template": "{{file_basename}}",
-            "output_filename_template": "{{file_basename}}.md",
-            "prompt": "TO_MARKDOWN_TEMPLATE",
-            "title_prompt": "TO_TEXT_TEMPLATE",
-            "template": "DEFAULT_MD_TEMPLATE",
-            "model": "mock-model",
-            "api_key": "mock-key",
-        }
+        config = Config(
+            output_path_template="{{file_basename}}",
+            output_filename_template="{{file_basename}}.md",
+            prompt="TO_MARKDOWN_TEMPLATE",
+            title_prompt="TO_TEXT_TEMPLATE",
+            template="{{markdown}}",
+            model="mock-model",
+            api_key="mock-key"
+        )
 
         mock_extractor.get_notebook.return_value = mock_notebook
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
@@ -68,8 +65,9 @@ def test_import_supernote_file_core(temp_dir):
             mock_extractor, filename, output, config, force=True, progress=False
         )
 
-        mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
+        mock_check_metadata.assert_not_called()
         assert mock_image_to_md.call_count == 2
+        mock_write_metadata.assert_called_once()
 
 
 def test_import_supernote_file_core_non_notebook(temp_dir):
@@ -80,32 +78,25 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
         _ = f.write("test content")
 
     with (
-        patch("sn2md.importer.compute_and_check_source_hash") as mock_hash,
+        patch("sn2md.importer.check_metadata_file") as mock_check_metadata,
         patch("sn2md.importer.image_to_markdown") as mock_image_to_md,
+        patch("sn2md.importer.write_metadata_file") as mock_write_metadata,
         patch("builtins.open", mock_open()) as mock_file,
-        patch("uuid.uuid4", mock_open()) as uuid_gen,
+        patch("uuid.uuid4") as mock_uuid,
     ):
-        mock_link = Mock()
-        mock_link.get_page_number.return_value = 0
-        mock_link.type.return_value = 1
-        mock_link.get_filepath.return_value = base64.standard_b64encode(b"some/path")
-        mock_link.inout.return_value = 1
-
+        mock_uuid.return_value.hex = "test-uuid"
         mock_extractor = Mock()
-
         mock_image_to_md.side_effect = ["markdown1", "markdown2"]
 
-        uuid_gen.return_value.hex = "1234"
-
-        config: Config = {
-            "output_path_template": "{{file_basename}}",
-            "output_filename_template": "{{file_basename}}.md",
-            "prompt": "TO_MARKDOWN_TEMPLATE",
-            "title_prompt": "TO_TEXT_TEMPLATE",
-            "template": "DEFAULT_MD_TEMPLATE",
-            "model": "mock-model",
-            "api_key": "mock-key",
-        }
+        config = Config(
+            output_path_template="{{file_basename}}",
+            output_filename_template="{{file_basename}}.md",
+            prompt="TO_MARKDOWN_TEMPLATE",
+            title_prompt="TO_TEXT_TEMPLATE",
+            template="{{markdown}}",
+            model="mock-model",
+            api_key="mock-key"
+        )
 
         mock_extractor.get_notebook.return_value = None
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
@@ -114,8 +105,9 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
             mock_extractor, filename, output, config, force=True, progress=False
         )
 
-        mock_hash.assert_called_once_with(filename, os.path.join(output, "test"))
+        mock_check_metadata.assert_not_called()
         assert mock_image_to_md.call_count == 2
+        mock_write_metadata.assert_called_once()
 
 
 @pytest.mark.parametrize(
