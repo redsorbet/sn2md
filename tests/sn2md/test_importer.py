@@ -1,19 +1,14 @@
-import base64
 import os
 import tempfile
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
-import yaml
 
 from sn2md.importer import (
     import_supernote_directory_core,
     import_supernote_file_core,
 )
-from sn2md.importers.note import NotebookExtractor
 from sn2md.types import Config
-
-# Mock functions from other modules
 
 
 @pytest.fixture
@@ -86,6 +81,7 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
         patch("sn2md.importer.check_metadata_file") as mock_check_metadata,
         patch("sn2md.importer.image_to_markdown") as mock_image_to_md,
         patch("sn2md.importer.write_metadata_file") as mock_write_metadata,
+        patch("sn2md.importer.os.rename") as mock_rename,
         patch("builtins.open", mock_open()) as mock_file,
         patch("uuid.uuid4") as mock_uuid,
     ):
@@ -93,15 +89,7 @@ def test_import_supernote_file_core_non_notebook(temp_dir):
         mock_extractor = Mock()
         mock_image_to_md.side_effect = ["markdown1", "markdown2"]
 
-        config = Config(
-            output_path_template="{{file_basename}}",
-            output_filename_template="{{file_basename}}.md",
-            prompt="TO_MARKDOWN_TEMPLATE",
-            title_prompt="TO_TEXT_TEMPLATE",
-            template="{{markdown}}",
-            model="mock-model",
-            api_key="mock-key"
-        )
+        config = Config()
 
         mock_extractor.get_notebook.return_value = None
         mock_extractor.extract_images.return_value = ["page1.png", "page2.png"]
