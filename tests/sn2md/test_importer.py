@@ -11,6 +11,7 @@ from sn2md.importer import create_notebook_context
 from sn2md.importer import (
     import_supernote_directory_core,
     import_supernote_file_core,
+    verify_metadata_file,
 )
 from sn2md.types import Config
 
