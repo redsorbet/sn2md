@@ -37,6 +37,7 @@ def test_import_supernote_file_core(temp_dir):
         patch("uuid.uuid4") as mock_uuid,
         patch("os.rename") as mock_rename,
         patch("os.rename") as mock_rename,
+        patch("os.rename") as mock_rename,
     ):
         mock_uuid.return_value.hex = "test-uuid"
         mock_extractor = Mock()
