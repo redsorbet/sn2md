@@ -1,8 +1,11 @@
+import base64
 import os
 import tempfile
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
+
+from sn2md.importer import create_notebook_context
 
 from sn2md.importer import (
     import_supernote_directory_core,
