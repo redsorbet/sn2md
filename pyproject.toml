@@ -11,8 +11,8 @@ reportMissingParameterType = false
 
 [tool.poetry]
 name = "sn2md"
-version = "2.1.0"
-description = "Convert Supernote .note files to markdown"
+version = "2.2.0"
+description = "Convert Supernote .note, PDF, or image files to text"
 authors = ["Dane Summers <dsummersl@yahoo.com>"]
 readme = "README.md"
 
@@ -50,7 +50,7 @@ testpaths = [
 python_files = [
     "sn2md/*.py"
 ]
-addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=75"
+addopts = "--cov=sn2md --cov-report=term-missing --cov-fail-under=85"
 
 [tool.poetry.scripts]
 sn2md = "sn2md.cli:cli"
