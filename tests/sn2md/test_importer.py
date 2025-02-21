@@ -134,6 +134,60 @@ def test_import_supernote_directory_core(temp_dir, progress, force):
         assert mock_tqdm.called == progress
 
 
+def test_create_notebook_context():
+    mock_notebook = Mock()
+    mock_link = Mock()
+    mock_link.get_page_number.return_value = 1
+    mock_link.get_type.return_value = 2  # web link
+    mock_link.get_filepath.return_value = base64.standard_b64encode(b"https://example.com")
+    mock_link.get_inout.return_value = 0  # outgoing link
+    mock_notebook.links = [mock_link]
+
+    mock_keyword = Mock()
+    mock_keyword.get_page_number.return_value = 2
+    mock_keyword.get_content.return_value = b"test keyword"
+    mock_notebook.keywords = [mock_keyword]
+
+    mock_title = Mock()
+    mock_title.get_page_number.return_value = 3
+    mock_title.metadata = {"TITLELEVEL": 1}
+    mock_notebook.titles = [mock_title]
+
+    config = Config(
+        output_path_template="{{file_basename}}",
+        output_filename_template="{{file_basename}}.md",
+        prompt="TO_MARKDOWN_TEMPLATE",
+        title_prompt="TO_TEXT_TEMPLATE",
+        template="{{markdown}}",
+        model="mock-model",
+        api_key="mock-key"
+    )
+
+    with patch("sn2md.importer.image_to_text") as mock_image_to_text, \
+         patch("sn2md.importer.convert_binary_to_image") as mock_convert_image:
+        mock_image_to_text.return_value = "Test Title"
+        
+        context = create_notebook_context(mock_notebook, config, "gpt-4")
+
+        assert len(context["links"]) == 1
+        assert context["links"][0]["page_number"] == 1
+        assert context["links"][0]["type"] == "web"
+        assert context["links"][0]["name"] == "example.com"
+        assert context["links"][0]["inout"] == "out"
+
+        assert len(context["keywords"]) == 1
+        assert context["keywords"][0]["page_number"] == 2
+        assert context["keywords"][0]["content"] == "test keyword"
+
+        assert len(context["titles"]) == 1
+        assert context["titles"][0]["page_number"] == 3
+        assert context["titles"][0]["content"] == "Test Title"
+        assert context["titles"][0]["level"] == 1
+
+        mock_image_to_text.assert_called_once()
+        mock_convert_image.assert_called_once_with(mock_notebook, mock_title)
+
+
 @pytest.mark.parametrize("progress", [True, False])
 def test_import_supernote_directory_core(temp_dir, progress):
     directory = temp_dir

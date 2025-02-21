@@ -83,7 +83,6 @@ def create_basic_context(file_basename: str, file_name: str) -> dict:
         ),
     }
 
-# Write a unit test for this function AI!
 def create_notebook_context(notebook: Notebook, config: Config, model: str) -> dict:
     # Codes:
     # TODO add a pull request for this feature:
