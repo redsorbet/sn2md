@@ -171,7 +171,7 @@ def test_create_notebook_context():
     with patch("sn2md.importer.image_to_text") as mock_image_to_text, \
          patch("sn2md.importer.convert_binary_to_image") as mock_convert_image:
         mock_image_to_text.return_value = "Test Title"
-        
+
         context = create_notebook_context(mock_notebook, config, "gpt-4")
 
         assert len(context["links"]) == 1
@@ -223,7 +223,7 @@ def test_verify_metadata_file_nested_path(temp_dir):
         _ = f.write("test content")
 
     config = Config(
-        output_path_template="notes/{{year}}/{{month}}/{{file_basename}}",
+        output_path_template="notes/{{ctime.strftime('%Y')}}/{{ctime.strftime('%m')}}/{{file_basename}}",
         output_filename_template="{{file_basename}}.md",
         prompt="TO_MARKDOWN_TEMPLATE",
         title_prompt="TO_TEXT_TEMPLATE",

@@ -63,23 +63,10 @@ def create_basic_context(file_basename: str, file_name: str) -> dict:
     return {
         "file_basename": file_basename,
         "file_name": file_name,
+        "ctime": datetime.fromtimestamp(os.path.getctime(file_name)),
+        "mtime": datetime.fromtimestamp(os.path.getmtime(file_name)),
         "year_month_day": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
             "%Y-%m-%d"
-        ),
-        "year": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
-            "%Y"
-        ),
-        "month": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
-            "%m"
-        ),
-        "day": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
-            "%d"
-        ),
-        "hour": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
-            "%H"
-        ),
-        "minute": datetime.fromtimestamp(os.path.getctime(file_name)).strftime(
-            "%M"
         ),
     }
 
