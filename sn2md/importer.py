@@ -9,6 +9,7 @@ from datetime import datetime
 
 from jinja2 import Template
 from supernotelib import Notebook
+from supernotelib.exceptions import DecoderException
 
 from sn2md.ai_utils import image_to_markdown, image_to_text
 from sn2md.importers.pdf import PDFExtractor
@@ -254,6 +255,7 @@ def import_supernote_directory_core(
         )
         for file in file_list:
             filename = os.path.join(root, file)
+            logger.debug(f"Processing file {filename}") # handy to see file name when things go wrong
             try:
                 if file.lower().endswith(".note"):
                     import_supernote_file_core(
@@ -273,5 +275,5 @@ def import_supernote_directory_core(
                     import_supernote_file_core(
                         PNGExtractor(), filename, output, config, force, progress, model
                     )
-            except ValueError as e:
+            except (ValueError, DecoderException) as e:
                 logger.debug(f"Skipping {filename}: {e}")
